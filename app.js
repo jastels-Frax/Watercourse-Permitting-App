@@ -1,5 +1,6 @@
 /* app.js — Culvert Survey
    Vanilla ES6+. No frameworks. All data lives in localStorage.
+   Two screens: home (surveys list) and form (data entry).
 */
 
 // ── Storage key ──────────────────────────────────────────────────────────────
@@ -9,6 +10,12 @@ const STORAGE_KEY = 'culvert_survey_records';
 let records = [];   // array of record objects, newest first
 
 // ── DOM refs ─────────────────────────────────────────────────────────────────
+const screenHome    = document.getElementById('screen-home');
+const screenForm    = document.getElementById('screen-form');
+const headerTitle   = document.getElementById('header-title');
+const btnBack       = document.getElementById('btn-back');
+const btnNewSurvey  = document.getElementById('btn-new-survey');
+
 const form          = document.getElementById('survey-form');
 const fSiteId       = document.getElementById('f-site-id');
 const fDiameter     = document.getElementById('f-diameter');
@@ -28,9 +35,8 @@ const dispMinDist   = document.getElementById('disp-min-dist');
 
 const btnGps        = document.getElementById('btn-gps');
 const gpsAccuracy   = document.getElementById('gps-accuracy');
-const btnSave       = document.getElementById('btn-save');
 const btnClear      = document.getElementById('btn-clear');
-const btnExport     = document.getElementById('btn-export');
+const btnExportAll  = document.getElementById('btn-export-all');
 const recordsList   = document.getElementById('records-list');
 const recordCount   = document.getElementById('record-count');
 
@@ -40,6 +46,7 @@ window.addEventListener('DOMContentLoaded', () => {
   renderRecords();
   updateSlope();
   registerServiceWorker();
+  showScreen('home');
 });
 
 // ── Service Worker registration ───────────────────────────────────────────────
@@ -49,6 +56,38 @@ function registerServiceWorker() {
       console.warn('SW registration failed:', err);
     });
   }
+}
+
+// ── Screen navigation ─────────────────────────────────────────────────────────
+function showScreen(name) {
+  const onHome = name === 'home';
+  screenHome.hidden = !onHome;
+  screenForm.hidden =  onHome;
+  btnBack.hidden    =  onHome;
+  headerTitle.textContent = onHome ? 'Culvert Survey' : 'New Survey';
+
+  if (!onHome) {
+    // Scroll to top of form and focus first field
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    fSiteId.focus();
+  }
+}
+
+btnNewSurvey.addEventListener('click', () => showScreen('form'));
+
+btnBack.addEventListener('click', () => {
+  if (formIsDirty()) {
+    if (!confirm('Discard unsaved data and return to home?')) return;
+  }
+  clearForm();
+  showScreen('home');
+});
+
+// Returns true if the user has typed anything into the form
+function formIsDirty() {
+  return [fSiteId, fDiameter, fLat, fLon, fElevA, fElevB,
+          fDistL, fVelocity, fChanWidth, fChanDepth, fNotes]
+    .some(el => el.value.trim() !== '');
 }
 
 // ── localStorage helpers ──────────────────────────────────────────────────────
@@ -105,12 +144,11 @@ btnGps.addEventListener('click', () => {
 });
 
 function updateSlope() {
-  const A  = parseFloat(fElevA.value);
-  const B  = parseFloat(fElevB.value);
-  const L  = parseFloat(fDistL.value);
-  const D  = parseFloat(fDiameter.value);
+  const A = parseFloat(fElevA.value);
+  const B = parseFloat(fElevB.value);
+  const L = parseFloat(fDistL.value);
+  const D = parseFloat(fDiameter.value);
 
-  // Slope %
   if (!isNaN(A) && !isNaN(B) && !isNaN(L) && L > 0) {
     const slopePct = ((A - B) / L) * 100;
     const slopeDeg = Math.atan((A - B) / L) * (180 / Math.PI);
@@ -121,10 +159,8 @@ function updateSlope() {
     dispDeg.value   = '—';
   }
 
-  // Minimum distance helper: (3 × D) + 3.5 m
   if (!isNaN(D) && D > 0) {
-    const minDist = (3 * D) + 3.5;
-    dispMinDist.textContent = minDist.toFixed(2) + ' m';
+    dispMinDist.textContent = ((3 * D) + 3.5).toFixed(2) + ' m';
   } else {
     dispMinDist.textContent = '—';
   }
@@ -135,9 +171,9 @@ form.addEventListener('submit', e => {
   e.preventDefault();
   if (!validateForm()) return;
 
-  const A  = parseFloat(fElevA.value);
-  const B  = parseFloat(fElevB.value);
-  const L  = parseFloat(fDistL.value);
+  const A = parseFloat(fElevA.value);
+  const B = parseFloat(fElevB.value);
+  const L = parseFloat(fDistL.value);
 
   let slopePct = null;
   let slopeDeg = null;
@@ -164,18 +200,17 @@ form.addEventListener('submit', e => {
     slopeDeg
   };
 
-  // Prepend so newest is first
   records.unshift(record);
   saveRecords();
   renderRecords();
   clearForm();
-  showToast('Record saved!', 'success');
+  showScreen('home');
+  showToast(`Survey "${record.siteId}" saved!`, 'success');
 });
 
 function validateForm() {
   let valid = true;
 
-  // Site ID is required
   if (!fSiteId.value.trim()) {
     fSiteId.classList.add('error');
     valid = false;
@@ -198,44 +233,52 @@ function clearForm() {
   gpsAccuracy.textContent = '';
   gpsAccuracy.className = 'gps-accuracy';
   updateSlope();
-  // Remove error states
   form.querySelectorAll('.error').forEach(el => el.classList.remove('error'));
 }
 
-// ── Render records list ───────────────────────────────────────────────────────
+// ── Render records list (home screen) ─────────────────────────────────────────
 function renderRecords() {
-  recordCount.textContent = records.length === 1
-    ? '1 record'
-    : `${records.length} records`;
+  const count = records.length;
+  recordCount.textContent = count === 1 ? '1 survey' : `${count} surveys`;
+  btnExportAll.style.display = count === 0 ? 'none' : '';
 
-  if (records.length === 0) {
-    recordsList.innerHTML = '<p class="no-records">No records saved yet.</p>';
+  if (count === 0) {
+    recordsList.innerHTML =
+      '<p class="no-records">No surveys saved yet.<br>Tap <strong>+ New Survey</strong> to begin.</p>';
     return;
   }
 
   recordsList.innerHTML = records.map(r => {
     const slopeText = r.slopePct !== null
       ? r.slopePct.toFixed(2) + '%'
-      : 'no slope';
+      : '—';
 
     const coordText = (r.lat !== null && r.lon !== null)
       ? `${r.lat.toFixed(5)}, ${r.lon.toFixed(5)}`
-      : 'no coords';
+      : 'No coordinates';
 
     const ts = new Date(r.timestamp).toLocaleString(undefined, {
-      month: 'short', day: 'numeric',
+      year: 'numeric', month: 'short', day: 'numeric',
       hour: '2-digit', minute: '2-digit'
     });
+
+    const diamText = r.diameter !== null ? `${r.diameter} m dia.` : '';
+    const detailParts = [coordText, diamText].filter(Boolean).join(' · ');
 
     return `
       <div class="record-item" data-id="${r.id}">
         <div class="record-site">${escHtml(r.siteId)}</div>
         <div class="record-slope">${escHtml(slopeText)}</div>
-        <div class="record-meta">${escHtml(coordText)}</div>
+        <div class="record-meta">${escHtml(detailParts)}</div>
         <div class="record-actions">
+          <button class="btn btn-secondary btn-sm"
+                  onclick="exportRecord('${r.id}')"
+                  aria-label="Export ${escHtml(r.siteId)} to CSV"
+                  title="Export this survey to CSV">&#8659; CSV</button>
           <button class="btn btn-danger btn-sm btn-icon"
                   onclick="deleteRecord('${r.id}')"
-                  aria-label="Delete record ${escHtml(r.siteId)}">✕</button>
+                  aria-label="Delete ${escHtml(r.siteId)}"
+                  title="Delete this survey">✕</button>
         </div>
         <div class="record-timestamp">${escHtml(ts)}</div>
       </div>`;
@@ -246,65 +289,80 @@ function renderRecords() {
 function deleteRecord(id) {
   const rec = records.find(r => r.id === id);
   if (!rec) return;
-
-  if (!confirm(`Delete record for "${rec.siteId}"?`)) return;
+  if (!confirm(`Delete survey "${rec.siteId}"?`)) return;
 
   records = records.filter(r => r.id !== id);
   saveRecords();
   renderRecords();
-  showToast('Record deleted.', 'info');
+  showToast('Survey deleted.', 'info');
 }
 
-// ── CSV export ────────────────────────────────────────────────────────────────
-btnExport.addEventListener('click', () => {
-  if (records.length === 0) {
-    showToast('No records to export.', 'error');
-    return;
-  }
+// ── CSV export helpers ────────────────────────────────────────────────────────
+const CSV_HEADERS = [
+  'Timestamp', 'Site ID', 'Diameter (m)',
+  'Latitude', 'Longitude',
+  'Elevation A (m)', 'Elevation B (m)', 'Distance L (m)',
+  'Slope (%)', 'Slope (deg)',
+  'Velocity (m/s)', 'Channel Width (m)', 'Channel Depth (m)',
+  'Notes'
+];
 
-  const headers = [
-    'Timestamp', 'Site ID', 'Diameter (m)',
-    'Latitude', 'Longitude',
-    'Elevation A (m)', 'Elevation B (m)', 'Distance L (m)',
-    'Slope (%)', 'Slope (deg)',
-    'Velocity (m/s)', 'Channel Width (m)', 'Channel Depth (m)',
-    'Notes'
-  ];
-
-  const rows = records.map(r => [
+function recordToRow(r) {
+  return [
     r.timestamp,
     r.siteId,
-    r.diameter ?? '',
-    r.lat ?? '',
-    r.lon ?? '',
-    r.elevA ?? '',
-    r.elevB ?? '',
-    r.distL ?? '',
+    r.diameter   ?? '',
+    r.lat        ?? '',
+    r.lon        ?? '',
+    r.elevA      ?? '',
+    r.elevB      ?? '',
+    r.distL      ?? '',
     r.slopePct !== null ? r.slopePct.toFixed(4) : '',
     r.slopeDeg !== null ? r.slopeDeg.toFixed(4) : '',
-    r.velocity ?? '',
-    r.chanWidth ?? '',
-    r.chanDepth ?? '',
-    r.notes.replace(/"/g, '""')   // escape quotes
-  ].map(v => `"${v}"`).join(','));
+    r.velocity   ?? '',
+    r.chanWidth  ?? '',
+    r.chanDepth  ?? '',
+    r.notes.replace(/"/g, '""')
+  ].map(v => `"${v}"`).join(',');
+}
 
-  const csv  = [headers.map(h => `"${h}"`).join(','), ...rows].join('\r\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+function downloadCSV(csvStr, filename) {
+  const blob = new Blob([csvStr], { type: 'text/csv;charset=utf-8;' });
   const url  = URL.createObjectURL(blob);
-
-  const dateStr  = new Date().toISOString().slice(0, 10);
-  const filename = `culvert-survey-${dateStr}.csv`;
-
-  const a   = document.createElement('a');
-  a.href    = url;
+  const a    = document.createElement('a');
+  a.href     = url;
   a.download = filename;
   a.style.display = 'none';
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
 
-  showToast(`Exported ${records.length} record(s) to ${filename}`, 'success');
+// Export a single record
+function exportRecord(id) {
+  const rec = records.find(r => r.id === id);
+  if (!rec) return;
+
+  const csv      = [CSV_HEADERS.map(h => `"${h}"`).join(','), recordToRow(rec)].join('\r\n');
+  const safeName = rec.siteId.replace(/[^a-z0-9_-]/gi, '_');
+  const dateStr  = new Date(rec.timestamp).toISOString().slice(0, 10);
+  downloadCSV(csv, `culvert-${safeName}-${dateStr}.csv`);
+  showToast(`Exported "${rec.siteId}" to CSV.`, 'success');
+}
+
+// Export all records
+btnExportAll.addEventListener('click', () => {
+  if (records.length === 0) {
+    showToast('No surveys to export.', 'error');
+    return;
+  }
+
+  const rows    = records.map(recordToRow);
+  const csv     = [CSV_HEADERS.map(h => `"${h}"`).join(','), ...rows].join('\r\n');
+  const dateStr = new Date().toISOString().slice(0, 10);
+  downloadCSV(csv, `culvert-survey-all-${dateStr}.csv`);
+  showToast(`Exported ${records.length} survey(s) to CSV.`, 'success');
 });
 
 // ── Toast helper ──────────────────────────────────────────────────────────────
@@ -314,8 +372,6 @@ function showToast(message, type = 'info') {
   toast.className = `toast ${type}`;
   toast.textContent = message;
   container.appendChild(toast);
-
-  // Remove after animation completes (~2.7s)
   setTimeout(() => toast.remove(), 2750);
 }
 
@@ -332,5 +388,6 @@ function escHtml(str) {
     .replace(/"/g, '&quot;');
 }
 
-// Make deleteRecord accessible from inline onclick handlers
-window.deleteRecord = deleteRecord;
+// Expose to inline onclick handlers
+window.deleteRecord  = deleteRecord;
+window.exportRecord  = exportRecord;

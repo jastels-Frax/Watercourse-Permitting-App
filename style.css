@@ -60,6 +60,21 @@ body {
   color: var(--text-muted);
 }
 
+/* Back button — ghost style inside header */
+.btn-ghost {
+  background: transparent;
+  color: var(--accent);
+  border: none;
+  font-size: 1.2rem;
+  padding: 0.25rem 0.5rem;
+}
+.btn-ghost:hover { background: rgba(0,180,216,0.12); }
+
+.header-back {
+  min-width: var(--tap);
+  margin-right: 0.25rem;
+}
+
 main {
   max-width: 640px;
   margin: 0 auto;
@@ -294,18 +309,50 @@ input[readonly] {
   min-width: 120px;
 }
 
-/* ── Export row ──────────────────────────────────────────────────────────── */
-.export-row {
+/* ── Home screen hero ────────────────────────────────────────────────────── */
+.home-hero {
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 2rem 1rem 1.75rem;
+  text-align: center;
+}
+
+.hero-icon {
+  font-size: 3rem;
+  line-height: 1;
+  color: var(--accent);
+  opacity: 0.9;
+}
+
+.hero-tagline {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  letter-spacing: 0.03em;
+}
+
+.btn-lg {
+  min-height: 54px;
+  padding: 0.75rem 2.25rem;
+  font-size: 1.05rem;
+  border-radius: 12px;
+  letter-spacing: 0.02em;
+  box-shadow: 0 4px 18px rgba(0,180,216,0.25);
+}
+
+/* ── Home toolbar (count + export all) ──────────────────────────────────── */
+.home-toolbar {
+  display: flex;
+  align-items: center;
   gap: 0.75rem;
   flex-wrap: wrap;
 }
 
 .record-count {
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   color: var(--text-muted);
-  align-self: center;
-  margin-left: auto;
+  flex: 1;
 }
 
 /* ── Records list ────────────────────────────────────────────────────────── */
@@ -321,8 +368,10 @@ input[readonly] {
   border-radius: var(--radius);
   padding: 0.75rem 0.875rem;
   display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 0.25rem 0.5rem;
+  /* col 1: text info, col 2: slope badge, col 3: action buttons */
+  grid-template-columns: 1fr auto auto;
+  grid-template-rows: auto auto auto;
+  gap: 0.2rem 0.5rem;
   align-items: start;
 }
 
@@ -334,32 +383,49 @@ input[readonly] {
   font-size: 0.95rem;
   font-weight: 700;
   color: var(--text);
+  grid-column: 1;
+  grid-row: 1;
 }
 
 .record-slope {
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   font-weight: 700;
   color: var(--accent);
-  text-align: right;
+  grid-column: 2;
+  grid-row: 1;
+  white-space: nowrap;
+  padding-top: 0.15rem;
 }
 
 .record-meta {
   font-size: 0.75rem;
   color: var(--text-muted);
-  grid-column: 1;
-}
-
-.record-actions {
-  grid-row: 1 / 3;
-  grid-column: 2;
-  display: flex;
-  align-items: center;
+  grid-column: 1 / 3;
+  grid-row: 2;
 }
 
 .record-timestamp {
   font-size: 0.7rem;
   color: var(--text-muted);
-  margin-top: 0.2rem;
+  grid-column: 1 / 3;
+  grid-row: 3;
+}
+
+/* Action buttons stack vertically in the rightmost column */
+.record-actions {
+  grid-column: 3;
+  grid-row: 1 / 4;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  align-items: stretch;
+  justify-content: center;
+  padding-left: 0.25rem;
+}
+
+.record-actions .btn {
+  min-width: 58px;
+  text-align: center;
 }
 
 .no-records {

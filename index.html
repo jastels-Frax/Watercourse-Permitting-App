@@ -8,71 +8,70 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="CulvSurvey" />
   <meta name="theme-color" content="#1a1a2e" />
-
   <title>Culvert Survey</title>
-
   <link rel="manifest" href="./manifest.json" />
   <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
 
-<!-- ── App header ─────────────────────────────────────────────────────────── -->
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     HEADER — sticky, always visible
+     Back arrow: hidden on home, shown on form (controlled by JS).
+     Gear: always visible, opens settings drawer.
+════════════════════════════════════════════════════════════════════════════ -->
 <header class="app-header">
-  <button id="btn-back" class="btn btn-ghost btn-icon header-back" hidden
-          aria-label="Back to home">&#8592;</button>
+  <!-- Back button: starts hidden; JS shows it only when on the form screen -->
+  <button id="btn-back" class="btn btn-ghost header-back"
+          aria-label="Back to home" style="display:none;">&#8592;</button>
+
   <h1 id="header-title">Culvert Survey</h1>
-  <button id="btn-settings" class="btn btn-ghost btn-icon header-gear"
+
+  <!-- Gear icon: always present, opens settings drawer -->
+  <button id="btn-settings" class="btn btn-ghost header-gear"
           aria-label="Open settings" title="Settings">&#9881;</button>
 </header>
 
 <!-- ── Toast container ───────────────────────────────────────────────────── -->
-<div id="toast-container" aria-live="polite" aria-atomic="false"></div>
+<div id="toast-container" aria-live="polite"></div>
 
-<!-- ════════════════════════════════════════════════════════════════════════ -->
-<!-- SETTINGS DRAWER                                                          -->
-<!-- ════════════════════════════════════════════════════════════════════════ -->
-<div id="settings-overlay" class="drawer-overlay" aria-hidden="true"></div>
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     SETTINGS DRAWER
+     Always in the DOM. Shown/hidden with CSS class "open" only — no
+     display:none or hidden attribute, so CSS transitions work reliably.
+════════════════════════════════════════════════════════════════════════════ -->
+<div id="settings-overlay" class="drawer-overlay"></div>
 
-<aside id="settings-drawer" class="drawer" aria-label="Settings panel">
+<aside id="settings-drawer" class="drawer" aria-label="Settings">
   <div class="drawer-header">
-    <h2 class="drawer-title">Settings</h2>
-    <button id="btn-settings-close" class="btn btn-ghost btn-icon"
+    <span class="drawer-title">Settings</span>
+    <button id="btn-settings-close" class="btn btn-ghost"
             aria-label="Close settings">&#10005;</button>
   </div>
   <div class="drawer-body">
     <p class="drawer-hint">
       These values pre-fill the metadata section of every new survey.
-      You can still edit them per-survey before saving.
+      You can still edit them per survey before saving.
     </p>
     <div class="field-group">
-
       <label for="s-surveyor">
         Surveyor Name
-        <input type="text" id="s-surveyor" placeholder="e.g. Jane Smith"
-               autocomplete="name" />
+        <input type="text" id="s-surveyor" placeholder="e.g. Jane Smith" />
       </label>
-
       <label for="s-company">
         Company / Organization
-        <input type="text" id="s-company"
-               placeholder="e.g. Watershed Engineering Ltd." />
+        <input type="text" id="s-company" placeholder="e.g. Watershed Engineering Ltd." />
       </label>
-
       <label for="s-project-num">
         Project Number
         <input type="text" id="s-project-num" placeholder="e.g. 2024-087" />
       </label>
-
       <label for="s-project-name">
         Project Name
-        <input type="text" id="s-project-name"
-               placeholder="e.g. Elk Creek Assessment" />
+        <input type="text" id="s-project-name" placeholder="e.g. Elk Creek Assessment" />
       </label>
-
     </div>
-
     <div class="drawer-actions">
-      <button id="btn-save-settings" class="btn btn-primary" style="width:100%;">
+      <button id="btn-save-settings" class="btn btn-primary btn-full">
         &#10003; Save Settings
       </button>
     </div>
@@ -81,267 +80,242 @@
 
 <main>
 
-  <!-- ════════════════════════════════════════════════════════════════════════ -->
-  <!-- HOME SCREEN                                                              -->
-  <!-- ════════════════════════════════════════════════════════════════════════ -->
-  <section id="screen-home">
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     HOME SCREEN
+════════════════════════════════════════════════════════════════════════════ -->
+<section id="screen-home">
 
-    <!-- Hero -->
-    <div class="home-hero">
-      <div class="hero-icon" aria-hidden="true">&#9680;</div>
-      <p class="hero-tagline">Culvert hydraulic field assessment</p>
-      <button id="btn-new-survey" class="btn btn-primary btn-lg">
-        + New Survey
-      </button>
-    </div>
+  <div class="home-hero">
+    <div class="hero-icon" aria-hidden="true">&#9680;</div>
+    <p class="hero-tagline">Culvert hydraulic field assessment</p>
+    <button id="btn-new-survey" class="btn btn-primary btn-lg">
+      + New Survey
+    </button>
+  </div>
 
-    <!-- Saved surveys -->
-    <div class="section-divider">Saved Surveys</div>
+  <div class="section-divider">Saved Surveys</div>
 
-    <div class="home-toolbar">
-      <span id="record-count" class="record-count">0 surveys</span>
-      <button type="button" id="btn-export-all" class="btn btn-secondary btn-sm">
-        &#8659; Export All CSV
-      </button>
-    </div>
+  <div class="home-toolbar">
+    <span id="record-count" class="record-count">0 surveys</span>
+    <button id="btn-export-all" class="btn btn-secondary btn-sm">
+      &#8659; Export All CSV
+    </button>
+  </div>
 
-    <div id="records-list" style="margin-top:0.75rem;">
-      <p class="no-records">
-        No surveys saved yet.<br>
-        Tap <strong>+ New Survey</strong> to begin.
-      </p>
-    </div>
+  <div id="records-list" style="margin-top:0.75rem;">
+    <p class="no-records">
+      No surveys saved yet.<br>
+      Tap <strong>+ New Survey</strong> to begin.
+    </p>
+  </div>
 
-  </section>
+</section>
 
-  <!-- ════════════════════════════════════════════════════════════════════════ -->
-  <!-- FORM SCREEN                                                              -->
-  <!-- ════════════════════════════════════════════════════════════════════════ -->
-  <section id="screen-form" hidden>
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     FORM SCREEN — hidden on load; shown when user taps New Survey
+════════════════════════════════════════════════════════════════════════════ -->
+<section id="screen-form" style="display:none;">
 
-    <form id="survey-form" novalidate>
+  <form id="survey-form" novalidate>
 
-      <!-- ── Survey Metadata (collapsible) ─────────────────────────────────── -->
-      <details id="meta-section" class="card meta-card">
-        <summary class="meta-summary">
-          <span class="card-title-inline">Survey Metadata</span>
-          <span class="meta-chevron" aria-hidden="true">&#9660;</span>
-        </summary>
+    <!-- ── Survey Metadata (collapsible) ───────────────────────────────────── -->
+    <details id="meta-section" class="card meta-card">
+      <summary class="meta-summary">
+        <span class="meta-label">Survey Metadata</span>
+        <span class="meta-chevron" aria-hidden="true">&#9660;</span>
+      </summary>
+      <div class="meta-fields field-group">
 
-        <div class="field-group meta-fields">
+        <div class="field-row">
+          <label for="f-meta-surveyor">
+            Surveyor
+            <input type="text" id="f-meta-surveyor" placeholder="e.g. Jane Smith" />
+          </label>
+          <label for="f-meta-company">
+            Company
+            <input type="text" id="f-meta-company" placeholder="e.g. Watershed Eng." />
+          </label>
+        </div>
 
-          <div class="field-row">
-            <label for="f-meta-surveyor">
-              Surveyor
-              <input type="text" id="f-meta-surveyor" name="surveyor"
-                     placeholder="e.g. Jane Smith" autocomplete="off" />
-            </label>
-            <label for="f-meta-company">
-              Company
-              <input type="text" id="f-meta-company" name="company"
-                     placeholder="e.g. Watershed Eng." autocomplete="off" />
-            </label>
-          </div>
+        <div class="field-row">
+          <label for="f-meta-project-num">
+            Project Number
+            <input type="text" id="f-meta-project-num" placeholder="e.g. 2024-087" />
+          </label>
+          <label for="f-meta-project-name">
+            Project Name
+            <input type="text" id="f-meta-project-name" placeholder="e.g. Elk Creek" />
+          </label>
+        </div>
 
-          <div class="field-row">
-            <label for="f-meta-project-num">
-              Project Number
-              <input type="text" id="f-meta-project-num" name="projectNumber"
-                     placeholder="e.g. 2024-087" autocomplete="off" />
-            </label>
-            <label for="f-meta-project-name">
-              Project Name
-              <input type="text" id="f-meta-project-name" name="projectName"
-                     placeholder="e.g. Elk Creek" autocomplete="off" />
-            </label>
-          </div>
-
-          <div class="field-row">
-            <label for="f-meta-date">
-              Date
-              <input type="date" id="f-meta-date" name="date" />
-            </label>
-            <label for="f-meta-flow">
-              Flow Condition
-              <select id="f-meta-flow" name="flowCondition">
-                <option value="">— select —</option>
-                <option>Normal</option>
-                <option>Low</option>
-                <option>High</option>
-                <option>Flood</option>
-                <option>Dry/Absent</option>
-                <option>Unknown</option>
-              </select>
-            </label>
-          </div>
-
-          <label for="f-meta-weather">
-            Weather
-            <select id="f-meta-weather" name="weather">
+        <div class="field-row">
+          <label for="f-meta-date">
+            Date
+            <input type="date" id="f-meta-date" />
+          </label>
+          <label for="f-meta-flow">
+            Flow Condition
+            <select id="f-meta-flow">
               <option value="">— select —</option>
-              <option>Clear</option>
-              <option>Overcast</option>
-              <option>Light rain</option>
-              <option>Heavy rain</option>
-              <option>Post-storm</option>
-              <option>Snow/ice</option>
+              <option>Normal</option>
+              <option>Low</option>
+              <option>High</option>
+              <option>Flood</option>
+              <option>Dry/Absent</option>
               <option>Unknown</option>
             </select>
           </label>
-
-          <label for="f-meta-weather-notes">
-            Weather Notes
-            <textarea id="f-meta-weather-notes" name="weatherNotes" rows="2"
-                      placeholder="e.g. recent 48hr rainfall, runoff still elevated"></textarea>
-          </label>
-
-          <label for="f-notes">
-            Field Notes
-            <textarea id="f-notes" name="notes"
-                      placeholder="Observations, fish presence, debris, inlet condition…"></textarea>
-          </label>
-
         </div>
-      </details>
 
-      <!-- ── Site info ──────────────────────────────────────────────────────── -->
-      <div class="card">
-        <div class="card-title">Site Info</div>
-        <div class="field-group">
+        <label for="f-meta-weather">
+          Weather
+          <select id="f-meta-weather">
+            <option value="">— select —</option>
+            <option>Clear</option>
+            <option>Overcast</option>
+            <option>Light rain</option>
+            <option>Heavy rain</option>
+            <option>Post-storm</option>
+            <option>Snow/ice</option>
+            <option>Unknown</option>
+          </select>
+        </label>
 
-          <label for="f-site-id">
-            Transect ID <span class="required">*</span>
-            <input type="text" id="f-site-id" name="siteId"
-                   placeholder="e.g. TRN-2024-001"
-                   autocomplete="off" autocorrect="off"
-                   inputmode="text" required />
-          </label>
+        <label for="f-meta-weather-notes">
+          Weather Notes
+          <textarea id="f-meta-weather-notes" rows="2"
+                    placeholder="e.g. recent 48hr rainfall, runoff still elevated"></textarea>
+        </label>
 
-          <label for="f-diameter">
-            Culvert Diameter / Width (m)
-            <input type="number" id="f-diameter" name="diameter"
-                   placeholder="e.g. 0.90"
-                   min="0" step="0.01" inputmode="decimal" />
-          </label>
+        <label for="f-notes">
+          Field Notes
+          <textarea id="f-notes"
+                    placeholder="Observations, fish presence, debris, inlet condition…"></textarea>
+        </label>
 
-        </div>
       </div>
+    </details>
 
-      <!-- ── GPS ───────────────────────────────────────────────────────────── -->
-      <div class="card">
-        <div class="card-title">GPS Coordinates</div>
-        <div class="gps-row">
-          <div class="gps-fields">
-            <label for="f-lat">
-              Latitude
-              <input type="number" id="f-lat" name="lat"
-                     placeholder="e.g. 49.123456"
-                     step="0.000001" inputmode="decimal" />
-            </label>
-            <label for="f-lon">
-              Longitude
-              <input type="number" id="f-lon" name="lon"
-                     placeholder="e.g. -122.123456"
-                     step="0.000001" inputmode="decimal" />
-            </label>
-          </div>
-          <div class="gps-btn">
-            <button type="button" id="btn-gps" class="btn btn-secondary">
-              Get Fix
-            </button>
-          </div>
-        </div>
-        <div id="gps-accuracy" class="gps-accuracy"></div>
+    <!-- ── Site Info ───────────────────────────────────────────────────────── -->
+    <div class="card">
+      <div class="card-title">Site Info</div>
+      <div class="field-group">
+
+        <label for="f-site-id">
+          Transect ID <span class="required">*</span>
+          <input type="text" id="f-site-id"
+                 placeholder="e.g. TRN-2024-001"
+                 autocomplete="off" autocorrect="off" inputmode="text" />
+        </label>
+
+        <label for="f-diameter">
+          Culvert Diameter / Width (m)
+          <input type="number" id="f-diameter"
+                 placeholder="e.g. 0.90" min="0" step="0.01" inputmode="decimal" />
+        </label>
+
       </div>
+    </div>
 
-      <!-- ── Elevation & Slope ──────────────────────────────────────────────── -->
-      <div class="card">
-        <div class="card-title">Elevation &amp; Slope</div>
-        <div class="field-group">
-
-          <div class="field-row">
-            <label for="f-elev-a">
-              Elevation A — Inlet thalweg (m)
-              <input type="number" id="f-elev-a" name="elevA"
-                     placeholder="e.g. 215.40"
-                     step="0.001" inputmode="decimal" />
-            </label>
-            <label for="f-elev-b">
-              Elevation B — Downstream riffle (m)
-              <input type="number" id="f-elev-b" name="elevB"
-                     placeholder="e.g. 214.90"
-                     step="0.001" inputmode="decimal" />
-            </label>
-          </div>
-
-          <label for="f-dist-l">
-            Distance L — Between A and B (m)
-            <input type="number" id="f-dist-l" name="distL"
-                   placeholder="e.g. 12.50"
-                   min="0" step="0.01" inputmode="decimal" />
+    <!-- ── GPS ─────────────────────────────────────────────────────────────── -->
+    <div class="card">
+      <div class="card-title">GPS Coordinates</div>
+      <div class="gps-row">
+        <div class="gps-fields">
+          <label for="f-lat">
+            Latitude
+            <input type="number" id="f-lat"
+                   placeholder="e.g. 49.123456" step="0.000001" inputmode="decimal" />
           </label>
-
-          <!-- Live slope display -->
-          <div class="slope-display" aria-live="polite">
-            <div class="slope-value">
-              <span class="label">Slope (%)</span>
-              <input type="text" id="disp-slope" readonly
-                     value="—" aria-label="Computed slope percent" />
-            </div>
-            <div class="slope-value">
-              <span class="label">Slope (°)</span>
-              <input type="text" id="disp-deg" readonly
-                     value="—" aria-label="Computed slope degrees" />
-            </div>
-            <div class="slope-helper">
-              Minimum distance to place Point B:
-              <strong id="disp-min-dist">—</strong>
-              &nbsp;(3 × diameter + 3.5 m)
-            </div>
-          </div>
-
-        </div>
-      </div>
-
-      <!-- ── Channel Hydraulics ─────────────────────────────────────────────── -->
-      <div class="card">
-        <div class="card-title">Channel Hydraulics</div>
-        <div class="field-group">
-          <div class="field-row">
-            <label for="f-velocity">
-              Velocity (m/s)
-              <input type="number" id="f-velocity" name="velocity"
-                     placeholder="e.g. 0.45"
-                     min="0" step="0.01" inputmode="decimal" />
-            </label>
-            <label for="f-chan-width">
-              Width (m)
-              <input type="number" id="f-chan-width" name="chanWidth"
-                     placeholder="e.g. 1.80"
-                     min="0" step="0.01" inputmode="decimal" />
-            </label>
-          </div>
-          <label for="f-chan-depth">
-            Depth (m)
-            <input type="number" id="f-chan-depth" name="chanDepth"
-                   placeholder="e.g. 0.30"
-                   min="0" step="0.001" inputmode="decimal" />
+          <label for="f-lon">
+            Longitude
+            <input type="number" id="f-lon"
+                   placeholder="e.g. -122.123456" step="0.000001" inputmode="decimal" />
           </label>
         </div>
+        <div class="gps-btn">
+          <button type="button" id="btn-gps" class="btn btn-secondary">Get Fix</button>
+        </div>
       </div>
+      <div id="gps-accuracy" class="gps-accuracy"></div>
+    </div>
 
-      <!-- ── Form actions ───────────────────────────────────────────────────── -->
-      <div class="form-actions">
-        <button type="submit" id="btn-save" class="btn btn-primary">
-          &#10003; Save Survey
-        </button>
-        <button type="button" id="btn-clear" class="btn btn-secondary">
-          &#8635; Clear
-        </button>
+    <!-- ── Elevation & Slope ───────────────────────────────────────────────── -->
+    <div class="card">
+      <div class="card-title">Elevation &amp; Slope</div>
+      <div class="field-group">
+
+        <div class="field-row">
+          <label for="f-elev-a">
+            Elevation A — Inlet thalweg (m)
+            <input type="number" id="f-elev-a"
+                   placeholder="e.g. 215.40" step="0.001" inputmode="decimal" />
+          </label>
+          <label for="f-elev-b">
+            Elevation B — Downstream riffle (m)
+            <input type="number" id="f-elev-b"
+                   placeholder="e.g. 214.90" step="0.001" inputmode="decimal" />
+          </label>
+        </div>
+
+        <label for="f-dist-l">
+          Distance L — Between A and B (m)
+          <input type="number" id="f-dist-l"
+                 placeholder="e.g. 12.50" min="0" step="0.01" inputmode="decimal" />
+        </label>
+
+        <div class="slope-display" aria-live="polite">
+          <div class="slope-value">
+            <span class="slope-label">Slope (%)</span>
+            <input type="text" id="disp-slope" readonly value="—"
+                   aria-label="Computed slope percent" />
+          </div>
+          <div class="slope-value">
+            <span class="slope-label">Slope (&deg;)</span>
+            <input type="text" id="disp-deg" readonly value="—"
+                   aria-label="Computed slope degrees" />
+          </div>
+          <div class="slope-helper">
+            Min. distance for Point B: <strong id="disp-min-dist">—</strong>
+            <span class="slope-hint">(3 &times; diameter + 3.5 m)</span>
+          </div>
+        </div>
+
       </div>
+    </div>
 
-    </form>
-  </section>
+    <!-- ── Channel Hydraulics ──────────────────────────────────────────────── -->
+    <div class="card">
+      <div class="card-title">Channel Hydraulics</div>
+      <div class="field-group">
+        <div class="field-row">
+          <label for="f-velocity">
+            Velocity (m/s)
+            <input type="number" id="f-velocity"
+                   placeholder="e.g. 0.45" min="0" step="0.01" inputmode="decimal" />
+          </label>
+          <label for="f-chan-width">
+            Width (m)
+            <input type="number" id="f-chan-width"
+                   placeholder="e.g. 1.80" min="0" step="0.01" inputmode="decimal" />
+          </label>
+        </div>
+        <label for="f-chan-depth">
+          Depth (m)
+          <input type="number" id="f-chan-depth"
+                 placeholder="e.g. 0.30" min="0" step="0.001" inputmode="decimal" />
+        </label>
+      </div>
+    </div>
+
+    <!-- ── Form actions ────────────────────────────────────────────────────── -->
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">&#10003; Save Survey</button>
+      <button type="button" id="btn-clear" class="btn btn-secondary">&#8635; Clear</button>
+    </div>
+
+  </form>
+</section>
 
 </main>
 

@@ -18,7 +18,7 @@
   --text-muted:  #8a9bb5;
   --border:      #2a3a5c;
   --radius:      10px;
-  --tap:         44px;   /* minimum tap-target height */
+  --tap:         44px;
   --font:        -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
@@ -30,21 +30,20 @@ body {
   color: var(--text);
   min-height: 100vh;
   padding-bottom: 2rem;
-  /* prevent horizontal scroll */
   overflow-x: hidden;
 }
 
-/* ── Layout ──────────────────────────────────────────────────────────────── */
+/* ── App header ──────────────────────────────────────────────────────────── */
 .app-header {
   background: var(--surface);
   border-bottom: 2px solid var(--accent);
-  padding: 0.875rem 1rem;
+  padding: 0.5rem 0.75rem;
   position: sticky;
   top: 0;
   z-index: 100;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .app-header h1 {
@@ -55,33 +54,29 @@ body {
   flex: 1;
 }
 
-.app-header .version {
-  font-size: 0.7rem;
-  color: var(--text-muted);
-}
-
-/* Back button — ghost style inside header */
+/* Ghost button — transparent, accent-coloured icon */
 .btn-ghost {
   background: transparent;
   color: var(--accent);
   border: none;
-  font-size: 1.2rem;
-  padding: 0.25rem 0.5rem;
+  font-size: 1.25rem;
+  line-height: 1;
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
 }
 .btn-ghost:hover { background: rgba(0,180,216,0.12); }
 
-.header-back {
-  min-width: var(--tap);
-  margin-right: 0.25rem;
-}
+.header-back { margin-right: 0.1rem; }
+.header-gear { font-size: 1.15rem; margin-left: auto; }
 
+/* ── Layout ──────────────────────────────────────────────────────────────── */
 main {
   max-width: 640px;
   margin: 0 auto;
   padding: 1rem;
 }
 
-/* ── Cards / sections ────────────────────────────────────────────────────── */
+/* ── Cards ───────────────────────────────────────────────────────────────── */
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -97,6 +92,51 @@ main {
   letter-spacing: 0.08em;
   color: var(--accent);
   margin-bottom: 0.875rem;
+}
+
+/* ── Metadata collapsible (uses <details>/<summary>) ─────────────────────── */
+details.meta-card {
+  padding: 0;
+}
+
+details.meta-card > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.875rem 1rem;
+  cursor: pointer;
+  list-style: none;           /* hide default disclosure marker */
+  border-radius: var(--radius);
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+/* Hide WebKit's default marker */
+details.meta-card > summary::-webkit-details-marker { display: none; }
+
+.card-title-inline {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+}
+
+.meta-chevron {
+  color: var(--accent);
+  font-size: 0.7rem;
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+details[open].meta-card > summary .meta-chevron {
+  transform: rotate(180deg);
+}
+
+.meta-fields {
+  padding: 0 1rem 1rem;
+  border-top: 1px solid var(--border);
+  margin-top: 0;
 }
 
 /* ── Form fields ─────────────────────────────────────────────────────────── */
@@ -126,12 +166,13 @@ label {
   letter-spacing: 0.06em;
 }
 
-label span.required {
-  color: var(--accent);
-}
+label span.required { color: var(--accent); }
 
+/* All input types share the same look */
 input[type="text"],
 input[type="number"],
+input[type="date"],
+select,
 textarea {
   width: 100%;
   min-height: var(--tap);
@@ -149,6 +190,8 @@ textarea {
 
 input[type="text"]:focus,
 input[type="number"]:focus,
+input[type="date"]:focus,
+select:focus,
 textarea:focus {
   outline: none;
   border-color: var(--accent);
@@ -160,11 +203,27 @@ input[type="number"].error {
 }
 
 textarea {
-  min-height: 80px;
+  min-height: 76px;
   resize: vertical;
 }
 
-/* read-only computed fields */
+/* Custom dropdown arrow for <select> */
+select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238a9bb5' stroke-width='1.8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.875rem center;
+  padding-right: 2.25rem;
+  cursor: pointer;
+}
+
+select option { background: var(--surface2); }
+
+/* Date input — override iOS tint */
+input[type="date"] {
+  color-scheme: dark;
+}
+
+/* Read-only computed fields */
 input[readonly] {
   background: var(--surface2);
   border-color: var(--border);
@@ -227,13 +286,6 @@ input[readonly] {
   letter-spacing: 0.06em;
 }
 
-.slope-value .value {
-  font-size: 1.35rem;
-  font-weight: 700;
-  color: var(--accent);
-  font-variant-numeric: tabular-nums;
-}
-
 .slope-helper {
   grid-column: 1 / -1;
   font-size: 0.78rem;
@@ -242,9 +294,7 @@ input[readonly] {
   border-top: 1px solid var(--border);
 }
 
-.slope-helper strong {
-  color: var(--text);
-}
+.slope-helper strong { color: var(--text); }
 
 /* ── Buttons ─────────────────────────────────────────────────────────────── */
 .btn {
@@ -309,12 +359,12 @@ input[readonly] {
   min-width: 120px;
 }
 
-/* ── Home screen hero ────────────────────────────────────────────────────── */
+/* ── Home screen ─────────────────────────────────────────────────────────── */
 .home-hero {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.85rem;
   padding: 2rem 1rem 1.75rem;
   text-align: center;
 }
@@ -341,7 +391,7 @@ input[readonly] {
   box-shadow: 0 4px 18px rgba(0,180,216,0.25);
 }
 
-/* ── Home toolbar (count + export all) ──────────────────────────────────── */
+/* ── Home toolbar (record count + export all) ────────────────────────────── */
 .home-toolbar {
   display: flex;
   align-items: center;
@@ -368,16 +418,15 @@ input[readonly] {
   border-radius: var(--radius);
   padding: 0.75rem 0.875rem;
   display: grid;
-  /* col 1: text info, col 2: slope badge, col 3: action buttons */
+  /* text cols | slope | actions */
   grid-template-columns: 1fr auto auto;
   grid-template-rows: auto auto auto;
   gap: 0.2rem 0.5rem;
   align-items: start;
+  transition: border-color 0.15s;
 }
 
-.record-item:hover {
-  border-color: var(--accent);
-}
+.record-item:hover { border-color: var(--accent); }
 
 .record-site {
   font-size: 0.95rem;
@@ -402,6 +451,7 @@ input[readonly] {
   color: var(--text-muted);
   grid-column: 1 / 3;
   grid-row: 2;
+  line-height: 1.5;
 }
 
 .record-timestamp {
@@ -411,7 +461,7 @@ input[readonly] {
   grid-row: 3;
 }
 
-/* Action buttons stack vertically in the rightmost column */
+/* Action buttons — stacked vertically in the rightmost column */
 .record-actions {
   grid-column: 3;
   grid-row: 1 / 4;
@@ -423,16 +473,86 @@ input[readonly] {
   padding-left: 0.25rem;
 }
 
-.record-actions .btn {
-  min-width: 58px;
-  text-align: center;
-}
+.record-actions .btn { min-width: 56px; text-align: center; }
 
 .no-records {
   text-align: center;
   color: var(--text-muted);
   font-size: 0.85rem;
   padding: 2rem 0;
+  line-height: 1.7;
+}
+
+/* ── Settings drawer ─────────────────────────────────────────────────────── */
+.drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 200;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+.drawer-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: min(340px, 92vw);
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  z-index: 201;
+  transform: translateX(100%);
+  transition: transform 0.28s ease, box-shadow 0.28s ease;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.drawer.open {
+  transform: translateX(0);
+  box-shadow: -6px 0 32px rgba(0, 0, 0, 0.45);
+}
+
+.drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  z-index: 1;
+}
+
+.drawer-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.drawer-body {
+  padding: 1rem;
+  flex: 1;
+}
+
+.drawer-hint {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-bottom: 1.1rem;
+  line-height: 1.55;
+}
+
+.drawer-actions {
+  margin-top: 1.25rem;
 }
 
 /* ── Toast notifications ─────────────────────────────────────────────────── */
@@ -476,7 +596,7 @@ input[readonly] {
   to   { opacity: 0; }
 }
 
-/* ── Divider ─────────────────────────────────────────────────────────────── */
+/* ── Section divider ─────────────────────────────────────────────────────── */
 .section-divider {
   font-size: 0.8rem;
   font-weight: 700;

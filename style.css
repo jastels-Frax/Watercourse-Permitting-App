@@ -508,17 +508,29 @@ input[readonly] {
   background: var(--surface);
   border-left: 1px solid var(--border);
   z-index: 201;
-  transform: translateX(100%);
-  transition: transform 0.28s ease, box-shadow 0.28s ease;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  /* Start off-screen and non-interactive. Use visibility (not display:none)
+     so CSS transitions fire reliably without requestAnimationFrame hacks. */
+  transform: translateX(100%);
+  visibility: hidden;
+  pointer-events: none;
+  /* visibility delays: 0s on open (show instantly), 0.28s on close (hide after slide) */
+  transition: transform 0.28s ease,
+              box-shadow 0.28s ease,
+              visibility 0s 0.28s;
 }
 
 .drawer.open {
   transform: translateX(0);
+  visibility: visible;
+  pointer-events: auto;
   box-shadow: -6px 0 32px rgba(0, 0, 0, 0.45);
+  transition: transform 0.28s ease,
+              box-shadow 0.28s ease,
+              visibility 0s 0s;
 }
 
 .drawer-header {

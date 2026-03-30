@@ -106,25 +106,21 @@ function saveSettingsToStorage() {
 
 function openSettings() {
   // Populate drawer fields from current settings
-  sName.value        = settings.surveyor     || '';
-  sCompany.value     = settings.company      || '';
-  sProjectNum.value  = settings.projectNumber|| '';
-  sProjectName.value = settings.projectName  || '';
+  sName.value        = settings.surveyor      || '';
+  sCompany.value     = settings.company       || '';
+  sProjectNum.value  = settings.projectNumber || '';
+  sProjectName.value = settings.projectName   || '';
 
-  settingsDrawer.hidden = false;
+  // visibility/pointer-events are controlled purely by CSS classes — no
+  // display:none involved, so CSS transitions fire reliably on all browsers
   settingsOverlay.classList.add('open');
-  // Trigger CSS transition on next frame
-  requestAnimationFrame(() => settingsDrawer.classList.add('open'));
+  settingsDrawer.classList.add('open');
   sName.focus();
 }
 
 function closeSettings() {
   settingsDrawer.classList.remove('open');
   settingsOverlay.classList.remove('open');
-  // Hide after animation
-  settingsDrawer.addEventListener('transitionend', () => {
-    settingsDrawer.hidden = true;
-  }, { once: true });
 }
 
 btnSettingsOpen.addEventListener('click', openSettings);
@@ -356,7 +352,7 @@ form.addEventListener('submit', e => {
 function validateForm() {
   const valid = fSiteId.value.trim() !== '';
   fSiteId.classList.toggle('error', !valid);
-  if (!valid) showToast('Site ID is required.', 'error');
+  if (!valid) showToast('Transect ID is required.', 'error');
   return valid;
 }
 
@@ -457,7 +453,7 @@ function deleteRecord(id) {
 
 const CSV_HEADERS = [
   'Timestamp', 'Date', 'Surveyor', 'Company', 'Project Number', 'Project Name',
-  'Site ID', 'Culvert Diam (m)',
+  'Transect ID', 'Culvert Diam (m)',
   'Latitude', 'Longitude',
   'Elev A (m)', 'Elev B (m)', 'Dist L (m)', 'Min B Distance (m)',
   'Slope (%)', 'Slope (deg)',

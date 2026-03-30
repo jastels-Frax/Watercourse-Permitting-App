@@ -100,7 +100,7 @@ function goHome() {
   screenHome.style.display = 'block';
   screenForm.style.display = 'none';
   btnBack.style.display    = 'none';          // ← hidden on home screen
-  headerTitle.textContent  = 'Culvert Survey';
+  headerTitle.textContent  = 'NTB Watercourse Permitting';
 }
 
 function goForm() {

@@ -1,6 +1,6 @@
 {
-  "name": "Culvert Survey",
-  "short_name": "CulvSurvey",
+  "name": "NTB Watercourse Permitting",
+  "short_name": "NTB Permitting",
   "description": "Field data collector for culvert hydraulic assessments",
   "start_url": "./index.html",
   "display": "standalone",

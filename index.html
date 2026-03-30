@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="description" content="Field data collector for culvert hydraulic assessments" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="CulvSurvey" />
+  <meta name="theme-color" content="#1a1a2e" />
+
+  <title>Culvert Survey</title>
+
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+
+<!-- ── App header ─────────────────────────────────────────────────────────── -->
+<header class="app-header">
+  <h1>Culvert Survey</h1>
+  <span class="version">v1.0</span>
+</header>
+
+<!-- ── Toast container (managed by JS) ───────────────────────────────────── -->
+<div id="toast-container" aria-live="polite" aria-atomic="false"></div>
+
+<main>
+
+  <!-- ── Data entry form ──────────────────────────────────────────────────── -->
+  <form id="survey-form" novalidate>
+
+    <!-- Site info -->
+    <div class="card">
+      <div class="card-title">Site Info</div>
+      <div class="field-group">
+
+        <label for="f-site-id">
+          Site ID <span class="required">*</span>
+          <input type="text" id="f-site-id" name="siteId"
+                 placeholder="e.g. CUL-2024-001"
+                 autocomplete="off" autocorrect="off"
+                 inputmode="text" required />
+        </label>
+
+        <label for="f-diameter">
+          Culvert Diameter / Width (m)
+          <input type="number" id="f-diameter" name="diameter"
+                 placeholder="e.g. 0.90"
+                 min="0" step="0.01" inputmode="decimal" />
+        </label>
+
+      </div>
+    </div>
+
+    <!-- GPS -->
+    <div class="card">
+      <div class="card-title">GPS Coordinates</div>
+      <div class="gps-row">
+        <div class="gps-fields">
+          <label for="f-lat">
+            Latitude
+            <input type="number" id="f-lat" name="lat"
+                   placeholder="e.g. 49.123456"
+                   step="0.000001" inputmode="decimal" />
+          </label>
+          <label for="f-lon">
+            Longitude
+            <input type="number" id="f-lon" name="lon"
+                   placeholder="e.g. -122.123456"
+                   step="0.000001" inputmode="decimal" />
+          </label>
+        </div>
+        <div class="gps-btn">
+          <button type="button" id="btn-gps" class="btn btn-secondary">
+            Get Fix
+          </button>
+        </div>
+      </div>
+      <div id="gps-accuracy" class="gps-accuracy"></div>
+    </div>
+
+    <!-- Elevations & slope -->
+    <div class="card">
+      <div class="card-title">Elevation &amp; Slope</div>
+      <div class="field-group">
+
+        <div class="field-row">
+          <label for="f-elev-a">
+            Elevation A — Inlet thalweg (m)
+            <input type="number" id="f-elev-a" name="elevA"
+                   placeholder="e.g. 215.40"
+                   step="0.001" inputmode="decimal" />
+          </label>
+          <label for="f-elev-b">
+            Elevation B — Downstream riffle (m)
+            <input type="number" id="f-elev-b" name="elevB"
+                   placeholder="e.g. 214.90"
+                   step="0.001" inputmode="decimal" />
+          </label>
+        </div>
+
+        <label for="f-dist-l">
+          Distance L — Between A and B (m)
+          <input type="number" id="f-dist-l" name="distL"
+                 placeholder="e.g. 12.50"
+                 min="0" step="0.01" inputmode="decimal" />
+        </label>
+
+        <!-- Live slope display -->
+        <div class="slope-display" aria-live="polite">
+          <div class="slope-value">
+            <span class="label">Slope (%)</span>
+            <input type="text" id="disp-slope" readonly
+                   value="—" aria-label="Computed slope percent" />
+          </div>
+          <div class="slope-value">
+            <span class="label">Slope (°)</span>
+            <input type="text" id="disp-deg" readonly
+                   value="—" aria-label="Computed slope degrees" />
+          </div>
+          <div class="slope-helper">
+            Minimum distance to place Point B:
+            <strong id="disp-min-dist">—</strong>
+            &nbsp;(3 × diameter + 3.5 m)
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Channel hydraulics -->
+    <div class="card">
+      <div class="card-title">Channel Hydraulics</div>
+      <div class="field-group">
+        <div class="field-row">
+          <label for="f-velocity">
+            Velocity (m/s)
+            <input type="number" id="f-velocity" name="velocity"
+                   placeholder="e.g. 0.45"
+                   min="0" step="0.01" inputmode="decimal" />
+          </label>
+          <label for="f-chan-width">
+            Width (m)
+            <input type="number" id="f-chan-width" name="chanWidth"
+                   placeholder="e.g. 1.80"
+                   min="0" step="0.01" inputmode="decimal" />
+          </label>
+        </div>
+        <label for="f-chan-depth">
+          Depth (m)
+          <input type="number" id="f-chan-depth" name="chanDepth"
+                 placeholder="e.g. 0.30"
+                 min="0" step="0.001" inputmode="decimal" />
+        </label>
+      </div>
+    </div>
+
+    <!-- Notes -->
+    <div class="card">
+      <div class="card-title">Notes</div>
+      <label for="f-notes" class="sr-only">Field notes</label>
+      <textarea id="f-notes" name="notes"
+                placeholder="Observations, fish presence, debris, inlet condition…"></textarea>
+    </div>
+
+    <!-- Action buttons -->
+    <div class="form-actions">
+      <button type="submit" id="btn-save" class="btn btn-primary">
+        &#10003; Save Record
+      </button>
+      <button type="button" id="btn-clear" class="btn btn-secondary">
+        &#8635; Clear Form
+      </button>
+    </div>
+
+  </form>
+
+  <!-- ── Saved records ───────────────────────────────────────────────────── -->
+  <div class="section-divider">Saved Records</div>
+
+  <div class="export-row">
+    <button type="button" id="btn-export" class="btn btn-secondary">
+      &#8659; Export CSV
+    </button>
+    <span id="record-count" class="record-count">0 records</span>
+  </div>
+
+  <div id="records-list" style="margin-top: 0.75rem;">
+    <p class="no-records">No records saved yet.</p>
+  </div>
+
+</main>
+
+<script src="./app.js"></script>
+</body>
+</html>

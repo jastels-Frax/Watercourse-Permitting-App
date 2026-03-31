@@ -91,6 +91,7 @@
   <div class="home-hero">
     <div class="hero-icon" aria-hidden="true">&#9680;</div>
     <p class="hero-tagline">Culvert hydraulic field assessment</p>
+    <p class="hero-company">Fraxinus Environmental &amp; Geomatics Ltd.</p>
     <button id="btn-new-survey" class="btn btn-primary btn-lg">
       + New Survey
     </button>
@@ -313,7 +314,7 @@
 
     <!-- ── Form actions ────────────────────────────────────────────────────── -->
     <div class="form-actions">
-      <button type="submit" class="btn btn-primary">&#10003; Save Survey</button>
+      <button type="submit" id="btn-submit" class="btn btn-primary">&#10003; Save Survey</button>
       <button type="button" id="btn-clear" class="btn btn-secondary">&#8635; Clear</button>
     </div>
 
@@ -321,6 +322,22 @@
 </section>
 
 </main>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     UNSAVED CHANGES MODAL
+     display toggled via JS (none ↔ flex). No CSS transition needed.
+════════════════════════════════════════════════════════════════════════════ -->
+<div id="unsaved-modal" class="modal-overlay" style="display:none;"
+     role="dialog" aria-modal="true" aria-labelledby="modal-msg">
+  <div class="modal-dialog">
+    <p id="modal-msg" class="modal-message">You have unsaved changes.</p>
+    <div class="modal-actions">
+      <button id="btn-modal-save"    class="btn btn-primary   btn-full">&#10003; Save</button>
+      <button id="btn-modal-discard" class="btn btn-danger    btn-full">&#10005; Discard Changes</button>
+      <button id="btn-modal-cancel"  class="btn btn-secondary btn-full">&#8592; Keep Editing</button>
+    </div>
+  </div>
+</div>
 
 <script src="./app.js"></script>
 </body>

@@ -1,4 +1,4 @@
-/* app.js — Culvert Survey v2
+/* app.js — NTB Watercourse Permitting
    Vanilla ES6+. No frameworks. All data on-device in localStorage.
 */
 
@@ -7,8 +7,10 @@ const STORAGE_KEY  = 'culvert_survey_records';
 const SETTINGS_KEY = 'culvert_settings';
 
 // ── App state ─────────────────────────────────────────────────────────────────
-let records  = [];
-let settings = { surveyor: '', company: '', projectNumber: '', projectName: '' };
+let records         = [];
+let settings        = { surveyor: '', company: '', projectNumber: '', projectName: '' };
+let editingRecordId = null;   // null = new survey, string id = editing existing
+let formSnapshot    = {};     // field values captured at form-open time
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
 
@@ -24,10 +26,10 @@ const settingsOverlay  = document.getElementById('settings-overlay');
 const settingsDrawer   = document.getElementById('settings-drawer');
 
 // Settings drawer inputs
-const sName        = document.getElementById('s-surveyor');
-const sCompany     = document.getElementById('s-company');
-const sProjectNum  = document.getElementById('s-project-num');
-const sProjectName = document.getElementById('s-project-name');
+const sName           = document.getElementById('s-surveyor');
+const sCompany        = document.getElementById('s-company');
+const sProjectNum     = document.getElementById('s-project-num');
+const sProjectName    = document.getElementById('s-project-name');
 const btnSaveSettings = document.getElementById('btn-save-settings');
 
 // Home screen
@@ -36,8 +38,9 @@ const recordCount  = document.getElementById('record-count');
 const btnExportAll = document.getElementById('btn-export-all');
 
 // Survey form
-const form         = document.getElementById('survey-form');
-const metaSection  = document.getElementById('meta-section');
+const form        = document.getElementById('survey-form');
+const btnSubmit   = document.getElementById('btn-submit');
+const metaSection = document.getElementById('meta-section');
 
 // Metadata fields
 const fMetaSurveyor     = document.getElementById('f-meta-surveyor');
@@ -72,6 +75,12 @@ const btnGps      = document.getElementById('btn-gps');
 const gpsAccuracy = document.getElementById('gps-accuracy');
 const btnClear    = document.getElementById('btn-clear');
 
+// Unsaved-changes modal
+const unsavedModal    = document.getElementById('unsaved-modal');
+const btnModalSave    = document.getElementById('btn-modal-save');
+const btnModalDiscard = document.getElementById('btn-modal-discard');
+const btnModalCancel  = document.getElementById('btn-modal-cancel');
+
 // ── Boot ──────────────────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
   loadSettings();
@@ -79,7 +88,7 @@ window.addEventListener('DOMContentLoaded', () => {
   renderRecords();
   updateSlope();
   registerSW();
-  goHome();           // start on the home screen
+  goHome();
 });
 
 function registerSW() {
@@ -91,50 +100,178 @@ function registerSW() {
 
 // ══════════════════════════════════════════════════════════════════════════════
 // SCREEN NAVIGATION
-// Two screens — home and form — toggled with style.display (block / none).
-// Using inline style rather than the HTML `hidden` attribute avoids any
-// browser-default `display:none !important` conflicts with CSS classes.
 // ══════════════════════════════════════════════════════════════════════════════
 
 function goHome() {
   screenHome.style.display = 'block';
   screenForm.style.display = 'none';
-  btnBack.style.display    = 'none';          // ← hidden on home screen
+  btnBack.style.display    = 'none';
   headerTitle.textContent  = 'NTB Watercourse Permitting';
+  editingRecordId          = null;
 }
 
 function goForm() {
+  editingRecordId = null;
   screenHome.style.display = 'none';
   screenForm.style.display = 'block';
-  btnBack.style.display    = 'inline-flex';   // ← shown on form screen
+  btnBack.style.display    = 'inline-flex';
   headerTitle.textContent  = 'New Survey';
+  btnSubmit.innerHTML      = '&#10003; Save Survey';
 
-  // Pre-fill from saved settings; set date to today
   prefillMetadata();
-
-  // Collapse metadata section if settings are already saved, open it if not
   const hasSettings = settings.surveyor || settings.company ||
                       settings.projectNumber || settings.projectName;
   metaSection.open = !hasSettings;
 
+  gpsAccuracy.textContent = '';
+  gpsAccuracy.className   = 'gps-accuracy';
   window.scrollTo({ top: 0, behavior: 'smooth' });
   fSiteId.focus();
+  snapshotForm();
+}
+
+function goFormEdit(record) {
+  editingRecordId = record.id;
+  screenHome.style.display = 'none';
+  screenForm.style.display = 'block';
+  btnBack.style.display    = 'inline-flex';
+  headerTitle.textContent  = `Editing: ${record.siteId}`;
+  btnSubmit.innerHTML      = '&#10003; Update Survey';
+
+  // Fill metadata
+  fMetaSurveyor.value     = record.surveyor      || '';
+  fMetaCompany.value      = record.company       || '';
+  fMetaProjectNum.value   = record.projectNumber || '';
+  fMetaProjectName.value  = record.projectName   || '';
+  fMetaDate.value         = record.date          || todayISO();
+  fMetaFlow.value         = record.flowCondition || '';
+  fMetaWeather.value      = record.weather       || '';
+  fMetaWeatherNotes.value = record.weatherNotes  || '';
+  fNotes.value            = record.notes         || '';
+
+  // Fill measurements
+  fSiteId.value    = record.siteId    || '';
+  fDiameter.value  = record.diameter  != null ? record.diameter  : '';
+  fLat.value       = record.lat       != null ? record.lat       : '';
+  fLon.value       = record.lon       != null ? record.lon       : '';
+  fElevA.value     = record.elevA     != null ? record.elevA     : '';
+  fElevB.value     = record.elevB     != null ? record.elevB     : '';
+  fDistL.value     = record.distL     != null ? record.distL     : '';
+  fVelocity.value  = record.velocity  != null ? record.velocity  : '';
+  fChanWidth.value = record.chanWidth != null ? record.chanWidth : '';
+  fChanDepth.value = record.chanDepth != null ? record.chanDepth : '';
+
+  // Open metadata so user can review/edit all fields
+  metaSection.open = true;
+
+  gpsAccuracy.textContent = '';
+  gpsAccuracy.className   = 'gps-accuracy';
+  updateSlope();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  fSiteId.focus();
+  snapshotForm();
 }
 
 btnNewSurvey.addEventListener('click', goForm);
 
+// ══════════════════════════════════════════════════════════════════════════════
+// CHANGE DETECTION
+// Snapshot all field values on form open; compare on back/cancel.
+// ══════════════════════════════════════════════════════════════════════════════
+
+function snapshotForm() {
+  formSnapshot = {
+    surveyor:     fMetaSurveyor.value,
+    company:      fMetaCompany.value,
+    projectNum:   fMetaProjectNum.value,
+    projectName:  fMetaProjectName.value,
+    date:         fMetaDate.value,
+    flow:         fMetaFlow.value,
+    weather:      fMetaWeather.value,
+    weatherNotes: fMetaWeatherNotes.value,
+    notes:        fNotes.value,
+    siteId:       fSiteId.value,
+    diameter:     fDiameter.value,
+    lat:          fLat.value,
+    lon:          fLon.value,
+    elevA:        fElevA.value,
+    elevB:        fElevB.value,
+    distL:        fDistL.value,
+    velocity:     fVelocity.value,
+    chanWidth:    fChanWidth.value,
+    chanDepth:    fChanDepth.value,
+  };
+}
+
+function hasUnsavedChanges() {
+  return (
+    fMetaSurveyor.value     !== formSnapshot.surveyor     ||
+    fMetaCompany.value      !== formSnapshot.company      ||
+    fMetaProjectNum.value   !== formSnapshot.projectNum   ||
+    fMetaProjectName.value  !== formSnapshot.projectName  ||
+    fMetaDate.value         !== formSnapshot.date         ||
+    fMetaFlow.value         !== formSnapshot.flow         ||
+    fMetaWeather.value      !== formSnapshot.weather      ||
+    fMetaWeatherNotes.value !== formSnapshot.weatherNotes ||
+    fNotes.value            !== formSnapshot.notes        ||
+    fSiteId.value           !== formSnapshot.siteId       ||
+    fDiameter.value         !== formSnapshot.diameter     ||
+    fLat.value              !== formSnapshot.lat          ||
+    fLon.value              !== formSnapshot.lon          ||
+    fElevA.value            !== formSnapshot.elevA        ||
+    fElevB.value            !== formSnapshot.elevB        ||
+    fDistL.value            !== formSnapshot.distL        ||
+    fVelocity.value         !== formSnapshot.velocity     ||
+    fChanWidth.value        !== formSnapshot.chanWidth    ||
+    fChanDepth.value        !== formSnapshot.chanDepth
+  );
+}
+
+// ── Back button ───────────────────────────────────────────────────────────────
 btnBack.addEventListener('click', () => {
-  if (formIsDirty() && !confirm('Discard unsaved data and return to home?')) return;
+  if (!hasUnsavedChanges()) {
+    clearForm();
+    goHome();
+    return;
+  }
+  openUnsavedModal();
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// UNSAVED-CHANGES MODAL
+// ══════════════════════════════════════════════════════════════════════════════
+
+function openUnsavedModal()  { unsavedModal.style.display = 'flex'; }
+function closeUnsavedModal() { unsavedModal.style.display = 'none'; }
+
+// "Keep Editing" — dismiss modal, stay on form
+btnModalCancel.addEventListener('click', closeUnsavedModal);
+
+// Click on the backdrop — treat same as "Keep Editing"
+unsavedModal.addEventListener('click', e => {
+  if (e.target === unsavedModal) closeUnsavedModal();
+});
+
+// "Discard Changes" — abandon and go home
+btnModalDiscard.addEventListener('click', () => {
+  closeUnsavedModal();
   clearForm();
   goHome();
 });
 
-function formIsDirty() {
-  return [fSiteId, fDiameter, fLat, fLon, fElevA, fElevB,
-          fDistL, fVelocity, fChanWidth, fChanDepth,
-          fNotes, fMetaWeatherNotes]
-    .some(el => el.value.trim() !== '');
-}
+// "Save" — attempt save; if validation passes, goes home automatically
+btnModalSave.addEventListener('click', () => {
+  closeUnsavedModal();
+  saveForm();
+});
+
+// Escape key: close modal if open, then close settings drawer if open
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    if (unsavedModal.style.display === 'flex') { closeUnsavedModal(); return; }
+    if (settingsDrawer.classList.contains('open')) closeSettings();
+  }
+});
 
 // ══════════════════════════════════════════════════════════════════════════════
 // SETTINGS DRAWER
@@ -152,13 +289,10 @@ function persistSettings() {
 }
 
 function openSettings() {
-  // Populate the drawer with the currently-saved values
   sName.value        = settings.surveyor      || '';
   sCompany.value     = settings.company       || '';
   sProjectNum.value  = settings.projectNumber || '';
   sProjectName.value = settings.projectName   || '';
-
-  // Add .open — CSS transitions handle the slide-in and fade-in
   settingsOverlay.classList.add('open');
   settingsDrawer.classList.add('open');
   sName.focus();
@@ -173,10 +307,6 @@ btnOpenSettings.addEventListener('click', openSettings);
 btnCloseSettings.addEventListener('click', closeSettings);
 settingsOverlay.addEventListener('click', closeSettings);
 
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && settingsDrawer.classList.contains('open')) closeSettings();
-});
-
 btnSaveSettings.addEventListener('click', () => {
   settings.surveyor      = sName.value.trim();
   settings.company       = sCompany.value.trim();
@@ -189,7 +319,6 @@ btnSaveSettings.addEventListener('click', () => {
 
 // ══════════════════════════════════════════════════════════════════════════════
 // METADATA PRE-FILL
-// Called every time the form screen opens, and after Clear.
 // ══════════════════════════════════════════════════════════════════════════════
 
 function prefillMetadata() {
@@ -233,8 +362,8 @@ btnGps.addEventListener('click', () => {
     showToast('Geolocation not supported.', 'error');
     return;
   }
-  btnGps.disabled     = true;
-  btnGps.textContent  = '…';
+  btnGps.disabled         = true;
+  btnGps.textContent      = '…';
   gpsAccuracy.textContent = 'Acquiring fix…';
   gpsAccuracy.className   = 'gps-accuracy';
 
@@ -286,16 +415,14 @@ function updateSlope() {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// FORM SAVE
+// FORM SAVE — handles both new records and edits in place
 // ══════════════════════════════════════════════════════════════════════════════
 
-form.addEventListener('submit', e => {
-  e.preventDefault();
-
+function saveForm() {
   if (!fSiteId.value.trim()) {
     fSiteId.classList.add('error');
     showToast('Transect ID is required.', 'error');
-    return;
+    return false;
   }
   fSiteId.classList.remove('error');
 
@@ -311,39 +438,69 @@ form.addEventListener('submit', e => {
   }
   const minBDist = (D !== null && D > 0) ? (3 * D) + 3.5 : null;
 
-  const record = {
-    id:           generateId(),
-    timestamp:    new Date().toISOString(),
-    date:         fMetaDate.value || todayISO(),
-    surveyor:     fMetaSurveyor.value.trim(),
-    company:      fMetaCompany.value.trim(),
-    projectNumber:fMetaProjectNum.value.trim(),
-    projectName:  fMetaProjectName.value.trim(),
-    flowCondition:fMetaFlow.value,
-    weather:      fMetaWeather.value,
-    weatherNotes: fMetaWeatherNotes.value.trim(),
-    siteId:       fSiteId.value.trim(),
-    diameter:     D,
-    lat:          fLat.value      !== '' ? parseFloat(fLat.value)      : null,
-    lon:          fLon.value      !== '' ? parseFloat(fLon.value)      : null,
-    elevA:        fElevA.value    !== '' ? parseFloat(fElevA.value)    : null,
-    elevB:        fElevB.value    !== '' ? parseFloat(fElevB.value)    : null,
-    distL:        fDistL.value    !== '' ? parseFloat(fDistL.value)    : null,
-    velocity:     fVelocity.value !== '' ? parseFloat(fVelocity.value) : null,
-    chanWidth:    fChanWidth.value!== '' ? parseFloat(fChanWidth.value): null,
-    chanDepth:    fChanDepth.value!== '' ? parseFloat(fChanDepth.value): null,
+  // All editable fields collected once, used for both new and edit paths
+  const fields = {
+    date:          fMetaDate.value        || todayISO(),
+    surveyor:      fMetaSurveyor.value.trim(),
+    company:       fMetaCompany.value.trim(),
+    projectNumber: fMetaProjectNum.value.trim(),
+    projectName:   fMetaProjectName.value.trim(),
+    flowCondition: fMetaFlow.value,
+    weather:       fMetaWeather.value,
+    weatherNotes:  fMetaWeatherNotes.value.trim(),
+    siteId:        fSiteId.value.trim(),
+    diameter:      D,
+    lat:           fLat.value      !== '' ? parseFloat(fLat.value)      : null,
+    lon:           fLon.value      !== '' ? parseFloat(fLon.value)      : null,
+    elevA:         fElevA.value    !== '' ? parseFloat(fElevA.value)    : null,
+    elevB:         fElevB.value    !== '' ? parseFloat(fElevB.value)    : null,
+    distL:         fDistL.value    !== '' ? parseFloat(fDistL.value)    : null,
+    velocity:      fVelocity.value !== '' ? parseFloat(fVelocity.value) : null,
+    chanWidth:     fChanWidth.value!== '' ? parseFloat(fChanWidth.value): null,
+    chanDepth:     fChanDepth.value!== '' ? parseFloat(fChanDepth.value): null,
     slopePct,
     slopeDeg,
     minBDist,
-    notes:        fNotes.value.trim()
+    notes:         fNotes.value.trim(),
   };
 
-  records.unshift(record);
-  persistRecords();
-  renderRecords();
-  clearForm();
-  goHome();
-  showToast(`Saved "${record.siteId}"`, 'success');
+  if (editingRecordId !== null) {
+    // ── Edit: overwrite in place, preserve original id + timestamp + position ─
+    const idx = records.findIndex(r => r.id === editingRecordId);
+    if (idx !== -1) {
+      records[idx] = {
+        id:         records[idx].id,
+        timestamp:  records[idx].timestamp,   // original creation time preserved
+        lastEdited: new Date().toISOString(),  // updated on every edit
+        ...fields,
+      };
+      persistRecords();
+      renderRecords();
+      clearForm();
+      goHome();
+      showToast(`Updated "${fields.siteId}"`, 'success');
+    }
+  } else {
+    // ── New: prepend to records array ────────────────────────────────────────
+    const record = {
+      id:        generateId(),
+      timestamp: new Date().toISOString(),
+      ...fields,
+    };
+    records.unshift(record);
+    persistRecords();
+    renderRecords();
+    clearForm();
+    goHome();
+    showToast(`Saved "${record.siteId}"`, 'success');
+  }
+
+  return true;
+}
+
+form.addEventListener('submit', e => {
+  e.preventDefault();
+  saveForm();
 });
 
 // ── Clear form ────────────────────────────────────────────────────────────────
@@ -357,6 +514,8 @@ function clearForm() {
   form.querySelectorAll('.error').forEach(el => el.classList.remove('error'));
   // Re-apply settings-backed defaults after form.reset() wipes them
   prefillMetadata();
+  // Re-snapshot so hasUnsavedChanges() is false until the user types again
+  snapshotForm();
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -378,7 +537,7 @@ function renderRecords() {
   recordsList.innerHTML = records.map(r => {
     const slopeText = r.slopePct != null ? r.slopePct.toFixed(2) + '%' : '—';
 
-    const coordText = (r.lat != null && r.lon != null)
+    const coordText   = (r.lat != null && r.lon != null)
       ? `${r.lat.toFixed(5)}, ${r.lon.toFixed(5)}`
       : 'No coordinates';
     const diamText    = r.diameter != null ? `${r.diameter} m dia.` : '';
@@ -396,9 +555,14 @@ function renderRecords() {
       ? new Date(r.date + 'T12:00:00').toLocaleDateString(undefined,
           { month: 'short', day: 'numeric', year: 'numeric' })
       : null;
-    const timeLabel = surveyDate ? `${surveyDate} · logged ${ts}` : ts;
+    const timeLabel  = surveyDate ? `${surveyDate} · logged ${ts}` : ts;
 
-    // Safe record id for use in inline onclick — only alphanumeric + base36 chars
+    const editedLabel = r.lastEdited
+      ? `Edited ${new Date(r.lastEdited).toLocaleString(undefined, {
+          month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+        })}`
+      : null;
+
     const safeId = esc(r.id);
 
     return `
@@ -408,6 +572,9 @@ function renderRecords() {
         <div class="record-meta">${metaHtml}</div>
         <div class="record-actions">
           <button class="btn btn-secondary btn-sm"
+                  onclick="editRecord('${safeId}')"
+                  title="Edit survey">&#9998; Edit</button>
+          <button class="btn btn-secondary btn-sm"
                   onclick="exportRecord('${safeId}')"
                   title="Export to CSV">&#8659; CSV</button>
           <button class="btn btn-danger btn-sm btn-icon"
@@ -415,8 +582,16 @@ function renderRecords() {
                   title="Delete survey">&#10005;</button>
         </div>
         <div class="record-timestamp">${esc(timeLabel)}</div>
+        ${editedLabel ? `<div class="record-edited">${esc(editedLabel)}</div>` : ''}
       </div>`;
   }).join('');
+}
+
+// ── Edit ──────────────────────────────────────────────────────────────────────
+function editRecord(id) {
+  const rec = records.find(r => r.id === id);
+  if (!rec) return;
+  goFormEdit(rec);
 }
 
 // ── Delete ────────────────────────────────────────────────────────────────────
@@ -531,3 +706,4 @@ function esc(s) {
 // Expose for inline onclick handlers in rendered HTML
 window.deleteRecord = deleteRecord;
 window.exportRecord = exportRecord;
+window.editRecord   = editRecord;

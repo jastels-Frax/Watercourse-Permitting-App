@@ -349,6 +349,12 @@ input[readonly] {
   color: var(--muted);
   letter-spacing: 0.03em;
 }
+.hero-company {
+  font-size: 0.75rem;
+  color: var(--muted);
+  opacity: 0.65;
+  letter-spacing: 0.04em;
+}
 
 .home-toolbar {
   display: flex;
@@ -372,7 +378,7 @@ input[readonly] {
   padding: 0.75rem 0.875rem;
   display: grid;
   grid-template-columns: 1fr auto auto;
-  grid-template-rows: auto auto auto;
+  grid-template-rows: auto auto auto auto;  /* 4 rows: site/slope, meta, timestamp, edited */
   gap: 0.2rem 0.5rem;
   align-items: start;
   transition: border-color 0.15s;
@@ -404,8 +410,14 @@ input[readonly] {
   color: var(--muted);
   grid-column: 1 / 3; grid-row: 3;
 }
+.record-edited {
+  font-size: 0.68rem;
+  color: var(--accent);
+  opacity: 0.8;
+  grid-column: 1 / 3; grid-row: 4;
+}
 .record-actions {
-  grid-column: 3; grid-row: 1 / 4;
+  grid-column: 3; grid-row: 1 / 5;
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
@@ -550,6 +562,39 @@ input[readonly] {
 @keyframes toast-out {
   from { opacity: 1; }
   to   { opacity: 0; }
+}
+
+/* ── Unsaved-changes modal ─────────────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  z-index: 400;
+  display: flex;           /* overridden to none by inline style when hidden */
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.modal-dialog {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 340px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.55);
+}
+.modal-message {
+  font-size: 0.95rem;
+  color: var(--text);
+  margin-bottom: 1.25rem;
+  line-height: 1.5;
+  text-align: center;
+}
+.modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
 }
 
 /* ── Scrollbar (desktop) ───────────────────────────────────────────────────── */

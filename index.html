@@ -316,6 +316,66 @@
       </div>
     </div>
 
+    <!-- ── Substrate ────────────────────────────────────────────────────────── -->
+    <div class="card">
+      <div class="card-title">Substrate Composition</div>
+      <div class="field-group">
+
+        <div class="field-row-3">
+          <label for="f-sub-bedrock">
+            Bedrock (%)
+            <input type="number" id="f-sub-bedrock"
+                   placeholder="0" min="0" max="100" step="1" inputmode="numeric" />
+          </label>
+          <label for="f-sub-boulders">
+            Boulders (%)
+            <input type="number" id="f-sub-boulders"
+                   placeholder="0" min="0" max="100" step="1" inputmode="numeric" />
+          </label>
+          <label for="f-sub-cobble">
+            Cobble (%)
+            <input type="number" id="f-sub-cobble"
+                   placeholder="0" min="0" max="100" step="1" inputmode="numeric" />
+          </label>
+        </div>
+
+        <div class="field-row-3">
+          <label for="f-sub-gravel">
+            Gravel (%)
+            <input type="number" id="f-sub-gravel"
+                   placeholder="0" min="0" max="100" step="1" inputmode="numeric" />
+          </label>
+          <label for="f-sub-sand">
+            Sand (%)
+            <input type="number" id="f-sub-sand"
+                   placeholder="0" min="0" max="100" step="1" inputmode="numeric" />
+          </label>
+          <label for="f-sub-fines">
+            Fines (%)
+            <input type="number" id="f-sub-fines"
+                   placeholder="0" min="0" max="100" step="1" inputmode="numeric" />
+          </label>
+        </div>
+
+        <div id="sub-total-row" class="sub-total" aria-live="polite">
+          Total: <span id="sub-total">0</span> / 100
+        </div>
+
+        <label for="f-sub-embed">
+          Substrate Embededness
+          <select id="f-sub-embed">
+            <option value="">— select —</option>
+            <option>0%</option>
+            <option>25%</option>
+            <option>50%</option>
+            <option>75%</option>
+            <option>100%</option>
+          </select>
+        </label>
+
+      </div>
+    </div>
+
     <!-- ── Form actions ────────────────────────────────────────────────────── -->
     <div class="form-actions">
       <button type="submit" id="btn-submit" class="btn btn-primary">&#10003; Save Survey</button>

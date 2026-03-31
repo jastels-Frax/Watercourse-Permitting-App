@@ -70,6 +70,18 @@ const dispSlope   = document.getElementById('disp-slope');
 const dispDeg     = document.getElementById('disp-deg');
 const dispMinDist = document.getElementById('disp-min-dist');
 
+// Substrate fields
+const fSubBedrock  = document.getElementById('f-sub-bedrock');
+const fSubBoulders = document.getElementById('f-sub-boulders');
+const fSubCobble   = document.getElementById('f-sub-cobble');
+const fSubGravel   = document.getElementById('f-sub-gravel');
+const fSubSand     = document.getElementById('f-sub-sand');
+const fSubFines    = document.getElementById('f-sub-fines');
+const fSubEmbed    = document.getElementById('f-sub-embed');
+const subTotalSpan = document.getElementById('sub-total');
+const subTotalRow  = document.getElementById('sub-total-row');
+const subFields    = [fSubBedrock, fSubBoulders, fSubCobble, fSubGravel, fSubSand, fSubFines];
+
 // Other form controls
 const btnGps      = document.getElementById('btn-gps');
 const gpsAccuracy = document.getElementById('gps-accuracy');
@@ -161,6 +173,16 @@ function goFormEdit(record) {
   fChanWidth.value = record.chanWidth != null ? record.chanWidth : '';
   fChanDepth.value = record.chanDepth != null ? record.chanDepth : '';
 
+  // Substrate — gracefully handle records saved before this feature
+  fSubBedrock.value  = record.subBedrock  != null ? record.subBedrock  : '';
+  fSubBoulders.value = record.subBoulders != null ? record.subBoulders : '';
+  fSubCobble.value   = record.subCobble   != null ? record.subCobble   : '';
+  fSubGravel.value   = record.subGravel   != null ? record.subGravel   : '';
+  fSubSand.value     = record.subSand     != null ? record.subSand     : '';
+  fSubFines.value    = record.subFines    != null ? record.subFines    : '';
+  fSubEmbed.value    = record.subEmbed    || '';
+  updateSubTotal();
+
   // Open metadata so user can review/edit all fields
   metaSection.open = true;
 
@@ -200,6 +222,13 @@ function snapshotForm() {
     velocity:     fVelocity.value,
     chanWidth:    fChanWidth.value,
     chanDepth:    fChanDepth.value,
+    subBedrock:   fSubBedrock.value,
+    subBoulders:  fSubBoulders.value,
+    subCobble:    fSubCobble.value,
+    subGravel:    fSubGravel.value,
+    subSand:      fSubSand.value,
+    subFines:     fSubFines.value,
+    subEmbed:     fSubEmbed.value,
   };
 }
 
@@ -223,7 +252,14 @@ function hasUnsavedChanges() {
     fDistL.value            !== formSnapshot.distL        ||
     fVelocity.value         !== formSnapshot.velocity     ||
     fChanWidth.value        !== formSnapshot.chanWidth    ||
-    fChanDepth.value        !== formSnapshot.chanDepth
+    fChanDepth.value        !== formSnapshot.chanDepth    ||
+    fSubBedrock.value       !== formSnapshot.subBedrock   ||
+    fSubBoulders.value      !== formSnapshot.subBoulders  ||
+    fSubCobble.value        !== formSnapshot.subCobble    ||
+    fSubGravel.value        !== formSnapshot.subGravel    ||
+    fSubSand.value          !== formSnapshot.subSand      ||
+    fSubFines.value         !== formSnapshot.subFines     ||
+    fSubEmbed.value         !== formSnapshot.subEmbed
   );
 }
 
@@ -388,10 +424,21 @@ btnGps.addEventListener('click', () => {
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
-// LIVE SLOPE
+// LIVE SLOPE + SUBSTRATE TOTAL
 // ══════════════════════════════════════════════════════════════════════════════
 
 [fElevA, fElevB, fDistL, fDiameter].forEach(el => el.addEventListener('input', updateSlope));
+
+subFields.forEach(el => el.addEventListener('input', updateSubTotal));
+
+function updateSubTotal() {
+  const total = subFields.reduce((sum, el) => {
+    const v = parseFloat(el.value);
+    return sum + (isNaN(v) ? 0 : v);
+  }, 0);
+  subTotalSpan.textContent = total;
+  subTotalRow.classList.toggle('over', total > 100);
+}
 
 function updateSlope() {
   const A = parseFloat(fElevA.value);
@@ -456,8 +503,15 @@ function saveForm() {
     elevB:         fElevB.value    !== '' ? parseFloat(fElevB.value)    : null,
     distL:         fDistL.value    !== '' ? parseFloat(fDistL.value)    : null,
     velocity:      fVelocity.value !== '' ? parseFloat(fVelocity.value) : null,
-    chanWidth:     fChanWidth.value!== '' ? parseFloat(fChanWidth.value): null,
-    chanDepth:     fChanDepth.value!== '' ? parseFloat(fChanDepth.value): null,
+    chanWidth:     fChanWidth.value  !== '' ? parseFloat(fChanWidth.value)  : null,
+    chanDepth:     fChanDepth.value  !== '' ? parseFloat(fChanDepth.value)  : null,
+    subBedrock:    fSubBedrock.value !== '' ? parseFloat(fSubBedrock.value) : null,
+    subBoulders:   fSubBoulders.value!== '' ? parseFloat(fSubBoulders.value): null,
+    subCobble:     fSubCobble.value  !== '' ? parseFloat(fSubCobble.value)  : null,
+    subGravel:     fSubGravel.value  !== '' ? parseFloat(fSubGravel.value)  : null,
+    subSand:       fSubSand.value    !== '' ? parseFloat(fSubSand.value)    : null,
+    subFines:      fSubFines.value   !== '' ? parseFloat(fSubFines.value)   : null,
+    subEmbed:      fSubEmbed.value,
     slopePct,
     slopeDeg,
     minBDist,
@@ -514,6 +568,7 @@ function clearForm() {
   form.querySelectorAll('.error').forEach(el => el.classList.remove('error'));
   // Re-apply settings-backed defaults after form.reset() wipes them
   prefillMetadata();
+  updateSubTotal();
   // Re-snapshot so hasUnsavedChanges() is false until the user types again
   snapshotForm();
 }
@@ -616,6 +671,8 @@ const CSV_HEADERS = [
   'Elev A (m)', 'Elev B (m)', 'Dist L (m)', 'Min B Distance (m)',
   'Slope (%)', 'Slope (deg)',
   'Velocity (m/s)', 'Width (m)', 'Depth (m)',
+  'Bedrock (%)', 'Boulders (%)', 'Cobble (%)', 'Gravel (%)', 'Sand (%)', 'Fines (%)',
+  'Substrate Embededness',
   'Flow Condition', 'Weather', 'Weather Notes', 'Notes'
 ];
 
@@ -642,6 +699,13 @@ function toRow(r) {
     r.velocity        ?? '',
     r.chanWidth       ?? '',
     r.chanDepth       ?? '',
+    r.subBedrock      ?? '',
+    r.subBoulders     ?? '',
+    r.subCobble       ?? '',
+    r.subGravel       ?? '',
+    r.subSand         ?? '',
+    r.subFines        ?? '',
+    r.subEmbed        ?? '',
     r.flowCondition   ?? '',
     r.weather         ?? '',
     r.weatherNotes    ?? '',

@@ -178,6 +178,24 @@ details[open].meta-card .meta-chevron {
   .field-row { grid-template-columns: 1fr; }
 }
 
+.field-row-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.75rem;
+}
+@media (max-width: 400px) {
+  .field-row-3 { grid-template-columns: 1fr 1fr; }
+}
+
+/* Substrate running total */
+.sub-total {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 0.25rem 0;
+}
+.sub-total.over { color: var(--danger); }
+
 label {
   display: flex;
   flex-direction: column;

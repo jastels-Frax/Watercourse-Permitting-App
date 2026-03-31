@@ -9,11 +9,11 @@
   --bg:          #1a1a2e;
   --surface:     #16213e;
   --surface2:    #0f3460;
-  --accent:      #00b4d8;
-  --accent-dark: #0096b7;
+  --accent:      #4caf50;
+  --accent-dark: #388e3c;
   --danger:      #e05c5c;
   --danger-dark: #c44040;
-  --success:     #4caf79;
+  --success:     #81c784;
   --text:        #e0e6ef;
   --muted:       #8a9bb5;
   --border:      #2a3a5c;
@@ -72,6 +72,17 @@ body {
 }
 .btn-ghost:hover  { background: rgba(0,180,216,0.12); }
 .btn-ghost:active { transform: scale(0.92); }
+
+/* Brand mark in header — small icon, blends into dark bg */
+.header-logo {
+  height: 36px;
+  width:  36px;
+  object-fit: cover;
+  border-radius: 4px;
+  flex-shrink: 0;
+  mix-blend-mode: screen;
+  opacity: 0.9;
+}
 
 /* header-gear never gets hidden — always right-aligned */
 .header-gear {
@@ -344,16 +355,19 @@ input[readonly] {
   color: var(--accent);
   opacity: 0.9;
 }
-.hero-tagline {
-  font-size: 0.88rem;
-  color: var(--muted);
-  letter-spacing: 0.03em;
+/* Full horizontal logo in the home hero */
+.hero-logo {
+  width: min(88vw, 380px);
+  height: auto;
+  mix-blend-mode: screen;
+  border-radius: 6px;
 }
-.hero-company {
-  font-size: 0.75rem;
-  color: var(--muted);
-  opacity: 0.65;
-  letter-spacing: 0.04em;
+
+.hero-tagline {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.03em;
 }
 
 .home-toolbar {

@@ -106,7 +106,7 @@ function goHome() {
   screenHome.style.display = 'block';
   screenForm.style.display = 'none';
   btnBack.style.display    = 'none';
-  headerTitle.textContent  = 'NTB Watercourse Permitting';
+  headerTitle.textContent  = '';
   editingRecordId          = null;
 }
 

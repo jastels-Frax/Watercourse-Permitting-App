@@ -1,17 +1,24 @@
 {
-  "name": "NTB Watercourse Permitting",
-  "short_name": "NTB Permitting",
-  "description": "Field data collector for culvert hydraulic assessments",
+  "name": "Fraxinus Field — Safety & Documentation",
+  "short_name": "Fraxinus Field",
+  "description": "Field safety, workplace policies, and documentation system for Fraxinus Environmental & Geomatics",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#1a1a2e",
-  "theme_color": "#1a1a2e",
+  "background_color": "#F2EDE4",
+  "theme_color": "#2D5A3D",
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='24' fill='%231a1a2e'/><text x='96' y='130' font-size='100' text-anchor='middle' fill='%2300b4d8'>C</text></svg>",
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='28' fill='%232D5A3D'/%3E%3Ccircle cx='96' cy='96' r='58' fill='none' stroke='%23C4601A' stroke-width='8'/%3E%3Cline x1='96' y1='38' x2='96' y2='154' stroke='%23C4601A' stroke-width='5'/%3E%3Cline x1='38' y1='96' x2='154' y2='96' stroke='%23C4601A' stroke-width='5'/%3E%3Ccircle cx='96' cy='96' r='10' fill='%23C4601A'/%3E%3Cpolygon points='96,44 102,72 96,68 90,72' fill='%23FFFFFF'/%3E%3C/svg%3E",
       "sizes": "192x192",
-      "type": "image/svg+xml"
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='64' fill='%232D5A3D'/%3E%3Ccircle cx='256' cy='256' r='155' fill='none' stroke='%23C4601A' stroke-width='20'/%3E%3Cline x1='256' y1='100' x2='256' y2='410' stroke='%23C4601A' stroke-width='14'/%3E%3Cline x1='100' y1='256' x2='410' y2='256' stroke='%23C4601A' stroke-width='14'/%3E%3Ccircle cx='256' cy='256' r='26' fill='%23C4601A'/%3E%3Cpolygon points='256,112 272,186 256,174 240,186' fill='%23FFFFFF'/%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     }
   ]
 }

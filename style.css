@@ -723,6 +723,9 @@ input[type="time"] { color-scheme: dark; }
 }
 .nav-tab.done .nav-check { opacity: 1; }
 
+/* Explicitly override inline-flex when the hidden attribute is set on a tab */
+.nav-tab[hidden] { display: none !important; }
+
 /* ── Form section panels (show-exclusively — one visible at a time) ─────────── */
 .form-section {
   padding-bottom: var(--sp-xl);
@@ -739,6 +742,19 @@ input[type="time"] { color-scheme: dark; }
 /* Sections hidden when watercourse absent (wc-cond class toggled by JS) */
 .wc-cond { display: none; }
 .wc-cond.show { display: block; }
+
+/* Watercourse "No" locked message */
+.wc-no-msg {
+  padding: var(--sp-md);
+  background: var(--clr-warn-dim);
+  border: 1.5px solid rgba(255, 193, 7, 0.4);
+  border-radius: var(--radius);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--clr-warn);
+  line-height: 1.5;
+  margin: 0;
+}
 
 /* ── Record cards (home screen list) ────────────────────────────────────────── */
 .record-list  { display: flex; flex-direction: column; gap: 8px; }

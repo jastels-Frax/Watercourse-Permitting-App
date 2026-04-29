@@ -23,6 +23,9 @@ const SECTIONS = [
   { id: 'permits',  label: 'Permits'  },
 ];
 
+// Nav tabs hidden when watercoursePresent !== true (null or false)
+const WC_GATED = ['fish', 'geo', 'crossing'];
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -253,6 +256,7 @@ function renderForm(record) {
   showSection('id');
   setFooterState(record.status === 'complete' ? 'complete' : 'draft');
   initSectionId(record);
+  initSectionWc(record);
 }
 
 /**
@@ -292,6 +296,30 @@ function setSectionComplete(sectionId, bool) {
     `#section-nav .nav-tab[data-section="${sectionId}"]`
   );
   if (tab) tab.classList.toggle('done', bool);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// WATERCOURSE CONDITIONAL SECTION VISIBILITY
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * applyWatercourseFilter(present)
+ * Shows or hides the WC-gated nav tabs (fish / geo / crossing) based on
+ * whether a watercourse has been confirmed.
+ *   present === true  → show all tabs
+ *   present === null  → hide gated tabs (not yet confirmed)
+ *   present === false → hide gated tabs + user sees locked message in WC panel
+ * If the user is currently on a now-hidden tab they are redirected to 'wc'.
+ */
+function applyWatercourseFilter(present) {
+  const show = present === true;
+  WC_GATED.forEach(id => {
+    const tab = document.querySelector(`#section-nav .nav-tab[data-section="${id}"]`);
+    if (tab) tab.hidden = !show;
+  });
+  if (!show && WC_GATED.includes(activeSection)) {
+    showSection('wc');
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -481,6 +509,52 @@ function showGpsStatus(msg, type) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// SECTION 1 — Watercourse Confirmation
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function initSectionWc(record) {
+  const panel = document.querySelector('#section-panels .form-section[data-section="wc"]');
+  if (!panel) return;
+
+  const val = record.watercoursePresent === true  ? 'yes'
+            : record.watercoursePresent === false ? 'no'
+            : '';
+
+  panel.innerHTML = `
+    <div class="field-stack">
+
+      <label class="field-label">
+        <span>Watercourse present? <span class="req">*</span></span>
+        <select class="field-input" id="f-wc-present">
+          <option value="">— not yet assessed —</option>
+          <option value="yes" ${val === 'yes' ? 'selected' : ''}>Yes — bed and bank confirmed</option>
+          <option value="no"  ${val === 'no'  ? 'selected' : ''}>No — not a watercourse</option>
+        </select>
+      </label>
+
+      <p class="wc-no-msg" id="wc-no-msg" ${val !== 'no' ? 'hidden' : ''}>
+        No defined bed and bank — not a watercourse under the NS Environment Act.
+      </p>
+
+    </div>
+  `;
+
+  document.getElementById('f-wc-present').addEventListener('change', e => {
+    const present = e.target.value === 'yes' ? true
+                  : e.target.value === 'no'  ? false
+                  : null;
+    const noMsg = document.getElementById('wc-no-msg');
+    if (noMsg) noMsg.hidden = present !== false;
+    applyWatercourseFilter(present);
+    updateSectionCheckmarks();
+  });
+
+  // Apply filter immediately based on saved value
+  applyWatercourseFilter(record.watercoursePresent);
+  updateSectionCheckmarks();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // FORM ACTIONS — save, submit, edit, validation
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -597,6 +671,14 @@ function collectFormData() {
   if (fSar)        data.sarPolygon = fSar.checked;
   if (fNotes)      data.notes      = fNotes.value;
 
+  // Section 1 — Watercourse Confirmation
+  const fWcPresent = document.getElementById('f-wc-present');
+  if (fWcPresent) {
+    data.watercoursePresent = fWcPresent.value === 'yes' ? true
+                            : fWcPresent.value === 'no'  ? false
+                            : null;
+  }
+
   return data;
 }
 
@@ -613,6 +695,11 @@ function validateForm(record) {
   }
   if (!record.assessor?.trim()) {
     errors.push({ section: 'id', fieldId: 'f-assessor', message: 'Assessor name is required.' });
+  }
+
+  // Section 1 — Watercourse Confirmation
+  if (record.watercoursePresent === null || record.watercoursePresent === undefined) {
+    errors.push({ section: 'wc', fieldId: 'f-wc-present', message: 'Watercourse confirmation is required.' });
   }
 
   return errors;
@@ -649,9 +736,14 @@ function clearValidationErrors() {
  * Recomputes the ✓ badge on each nav tab based on required-field completeness.
  */
 function updateSectionCheckmarks() {
+  // Section 0 — Crossing Identification
   const crossingId = document.getElementById('f-crossing-id');
   const assessor   = document.getElementById('f-assessor');
   setSectionComplete('id', !!(crossingId?.value.trim() && assessor?.value.trim()));
+
+  // Section 1 — Watercourse Confirmation
+  const fWcPresent = document.getElementById('f-wc-present');
+  setSectionComplete('wc', fWcPresent?.value !== '');
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

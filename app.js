@@ -196,6 +196,10 @@ function saveDraft() {
 function renderForm(record) {
   console.log('[CA] renderForm:', record?.crossingId);
   viewForm.innerHTML = `
+    <div id="sar-banner" class="sar-banner" hidden>
+      ⚠ SAR Polygon — Species at Risk present or suspected
+    </div>
+
     <nav class="section-nav" id="section-nav" aria-label="Form sections">
       ${SECTIONS.map(s => `
         <button class="nav-tab" data-section="${esc(s.id)}" type="button"
@@ -248,6 +252,7 @@ function renderForm(record) {
 
   showSection('id');
   setFooterState(record.status === 'complete' ? 'complete' : 'draft');
+  initSectionId(record);
 }
 
 /**
@@ -287,6 +292,192 @@ function setSectionComplete(sectionId, bool) {
     `#section-nav .nav-tab[data-section="${sectionId}"]`
   );
   if (tab) tab.classList.toggle('done', bool);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SECTION 0 — Crossing Identification
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function initSectionId(record) {
+  const panel = document.querySelector('#section-panels .form-section[data-section="id"]');
+  if (!panel) return;
+
+  const ws = record.watershed || '';
+  const pr = record.priority  || '';
+
+  panel.innerHTML = `
+    <div class="field-stack">
+
+      <div class="field-row">
+        <label class="field-label">
+          <span>Crossing ID <span class="req">*</span></span>
+          <input class="field-input" type="text" id="f-crossing-id"
+                 value="${esc(record.crossingId)}" autocomplete="off" />
+        </label>
+        <label class="field-label">
+          <span>Assessor <span class="req">*</span></span>
+          <input class="field-input" type="text" id="f-assessor"
+                 value="${esc(record.assessor)}" autocomplete="name" />
+        </label>
+      </div>
+
+      <div class="field-row">
+        <label class="field-label">
+          <span>Date</span>
+          <input class="field-input" type="date" id="f-date"
+                 value="${esc(record.date)}" />
+        </label>
+        <label class="field-label">
+          <span>Time</span>
+          <input class="field-input" type="time" id="f-time"
+                 value="${esc(record.time)}" />
+        </label>
+      </div>
+
+      <div class="gps-row">
+        <label class="field-label">
+          <span>Latitude</span>
+          <input class="field-input" type="number" id="f-lat"
+                 step="0.000001" min="-90" max="90"
+                 value="${record.lat ?? ''}" placeholder="44.000000" />
+        </label>
+        <label class="field-label">
+          <span>Longitude</span>
+          <input class="field-input" type="number" id="f-lon"
+                 step="0.000001" min="-180" max="180"
+                 value="${record.lon ?? ''}" placeholder="-63.000000" />
+        </label>
+        <button class="btn btn-secondary" id="btn-gps" type="button"
+                aria-label="Use current GPS location">
+          <span id="gps-spinner" aria-hidden="true" hidden>…</span>
+          <span id="gps-icon">GPS</span>
+        </button>
+        <p class="gps-status" id="gps-status" hidden></p>
+      </div>
+
+      <label class="field-label">
+        <span>Watershed</span>
+        <select class="field-input" id="f-watershed">
+          <option value="">— select —</option>
+          <option value="Salmon/Debert"      ${ws === 'Salmon/Debert'      ? 'selected' : ''}>Salmon / Debert</option>
+          <option value="Phillip/Wallace"    ${ws === 'Phillip/Wallace'    ? 'selected' : ''}>Phillip / Wallace</option>
+          <option value="Economy"            ${ws === 'Economy'            ? 'selected' : ''}>Economy</option>
+          <option value="Tidnish/Shinimicas" ${ws === 'Tidnish/Shinimicas' ? 'selected' : ''}>Tidnish / Shinimicas</option>
+          <option value="Kelly/Maccan/Hebert"${ws === 'Kelly/Maccan/Hebert'? 'selected' : ''}>Kelly / Maccan / Hebert</option>
+          <option value="Missaguash"         ${ws === 'Missaguash'         ? 'selected' : ''}>Missaguash</option>
+          <option value="Other"              ${ws === 'Other'              ? 'selected' : ''}>Other</option>
+        </select>
+      </label>
+
+      <label class="field-label">
+        <span>Priority Tier</span>
+        <select class="field-input" id="f-priority">
+          <option value="">— select —</option>
+          <option value="P1" ${pr === 'P1' ? 'selected' : ''}>P1 — High</option>
+          <option value="P2" ${pr === 'P2' ? 'selected' : ''}>P2 — Medium</option>
+          <option value="P3" ${pr === 'P3' ? 'selected' : ''}>P3 — Low</option>
+        </select>
+      </label>
+
+      <div class="toggle-row">
+        <span>SAR Polygon</span>
+        <label class="toggle-wrap" aria-label="SAR polygon active">
+          <input type="checkbox" id="f-sar-polygon" ${record.sarPolygon ? 'checked' : ''} />
+          <span class="toggle-track" aria-hidden="true"></span>
+        </label>
+      </div>
+
+      <label class="field-label">
+        <span>Notes</span>
+        <textarea class="field-input" id="f-notes" rows="3">${esc(record.notes)}</textarea>
+      </label>
+
+    </div>
+  `;
+
+  // Wire GPS button
+  document.getElementById('btn-gps').addEventListener('click', acquireGPS);
+
+  // Wire SAR toggle — drive the banner and dirty flag
+  document.getElementById('f-sar-polygon').addEventListener('change', e => {
+    const banner = document.getElementById('sar-banner');
+    if (banner) banner.hidden = !e.target.checked;
+  });
+
+  // Set initial banner visibility
+  const banner = document.getElementById('sar-banner');
+  if (banner) banner.hidden = !record.sarPolygon;
+
+  // Keep header title in sync as crossing ID is typed
+  document.getElementById('f-crossing-id').addEventListener('input', e => {
+    headerTitle.textContent = e.target.value.trim() || 'New Record';
+  });
+
+  updateSectionCheckmarks();
+}
+
+/**
+ * acquireGPS()
+ * Calls navigator.geolocation.getCurrentPosition(), fills f-lat / f-lon,
+ * and shows status feedback in the .gps-status element.
+ */
+function acquireGPS() {
+  if (!navigator.geolocation) {
+    showGpsStatus('Geolocation not supported by this browser.', 'error');
+    return;
+  }
+
+  const btn     = document.getElementById('btn-gps');
+  const spinner = document.getElementById('gps-spinner');
+  const icon    = document.getElementById('gps-icon');
+
+  if (btn)     btn.disabled  = true;
+  if (spinner) spinner.hidden = false;
+  if (icon)    icon.hidden    = true;
+  showGpsStatus('Acquiring location…', '');
+
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const latVal = pos.coords.latitude.toFixed(6);
+      const lonVal = pos.coords.longitude.toFixed(6);
+
+      const latInput = document.getElementById('f-lat');
+      const lonInput = document.getElementById('f-lon');
+      if (latInput) {
+        latInput.value = latVal;
+        latInput.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      if (lonInput) {
+        lonInput.value = lonVal;
+        lonInput.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+
+      showGpsStatus(`Acquired — ±${Math.round(pos.coords.accuracy)} m`, 'good');
+      if (btn)     btn.disabled  = false;
+      if (spinner) spinner.hidden = true;
+      if (icon)    icon.hidden    = false;
+    },
+    err => {
+      const msgs = {
+        1: 'Location access denied. Check browser permissions.',
+        2: 'Position unavailable. Move to an open area and try again.',
+        3: 'Location request timed out.',
+      };
+      showGpsStatus(msgs[err.code] || 'Location error.', 'error');
+      if (btn)     btn.disabled  = false;
+      if (spinner) spinner.hidden = true;
+      if (icon)    icon.hidden    = false;
+    },
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+  );
+}
+
+function showGpsStatus(msg, type) {
+  const el = document.getElementById('gps-status');
+  if (!el) return;
+  el.textContent = msg;
+  el.className   = `gps-status${type ? ' ' + type : ''}`;
+  el.hidden      = !msg;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -379,21 +570,51 @@ function editRecord() {
 /**
  * collectFormData()
  * Reads live field values from each section panel and merges into currentRecord.
- * Each section adds its own field-collection logic in Parts 3e+.
  */
 function collectFormData() {
-  // Per-section collection added in Parts 3e+
-  return { ...currentRecord };
+  const data = { ...currentRecord };
+
+  // Section 0 — Crossing Identification
+  const fCrossingId = document.getElementById('f-crossing-id');
+  const fAssessor   = document.getElementById('f-assessor');
+  const fDate       = document.getElementById('f-date');
+  const fTime       = document.getElementById('f-time');
+  const fLat        = document.getElementById('f-lat');
+  const fLon        = document.getElementById('f-lon');
+  const fWatershed  = document.getElementById('f-watershed');
+  const fPriority   = document.getElementById('f-priority');
+  const fSar        = document.getElementById('f-sar-polygon');
+  const fNotes      = document.getElementById('f-notes');
+
+  if (fCrossingId) data.crossingId = fCrossingId.value.trim();
+  if (fAssessor)   data.assessor   = fAssessor.value.trim();
+  if (fDate)       data.date       = fDate.value;
+  if (fTime)       data.time       = fTime.value;
+  if (fLat)        data.lat        = fLat.value  !== '' ? parseFloat(fLat.value)  : null;
+  if (fLon)        data.lon        = fLon.value  !== '' ? parseFloat(fLon.value)  : null;
+  if (fWatershed)  data.watershed  = fWatershed.value;
+  if (fPriority)   data.priority   = fPriority.value;
+  if (fSar)        data.sarPolygon = fSar.checked;
+  if (fNotes)      data.notes      = fNotes.value;
+
+  return data;
 }
 
 /**
  * validateForm(record)
  * Returns [{section, fieldId, message}] for required fields that are empty.
- * Rules are added per section in Parts 3e+.
  */
 function validateForm(record) {
   const errors = [];
-  // Per-section validation rules added in Parts 3e+
+
+  // Section 0 — Crossing Identification
+  if (!record.crossingId?.trim()) {
+    errors.push({ section: 'id', fieldId: 'f-crossing-id', message: 'Crossing ID is required.' });
+  }
+  if (!record.assessor?.trim()) {
+    errors.push({ section: 'id', fieldId: 'f-assessor', message: 'Assessor name is required.' });
+  }
+
   return errors;
 }
 
@@ -426,10 +647,11 @@ function clearValidationErrors() {
 /**
  * updateSectionCheckmarks()
  * Recomputes the ✓ badge on each nav tab based on required-field completeness.
- * Per-section logic added in Parts 3e+ alongside the real form fields.
  */
 function updateSectionCheckmarks() {
-  // Per-section completeness logic added in Parts 3e+
+  const crossingId = document.getElementById('f-crossing-id');
+  const assessor   = document.getElementById('f-assessor');
+  setSectionComplete('id', !!(crossingId?.value.trim() && assessor?.value.trim()));
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

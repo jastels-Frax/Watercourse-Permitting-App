@@ -1,32 +1,31 @@
 /* app.js — Crossing Assessor
-   Part 1 scaffold: settings drawer, toast, screen routing stubs.
-   All data stays in localStorage — no server calls.
+   UI shell: settings drawer, toast, screen routing.
+   Data operations go through window.CA (data.js).
 */
 
 'use strict';
 
-// ── Constants ──────────────────────────────────────────────────────────────────
-const STORAGE_KEY  = 'ca_records';
+// ── Settings storage (separate from record storage in data.js) ────────────────
 const SETTINGS_KEY = 'ca_settings';
 
 // ── State ──────────────────────────────────────────────────────────────────────
 let settings = { assessor: '' };
 
 // ── DOM refs ───────────────────────────────────────────────────────────────────
-const screenHome   = document.getElementById('screen-home');
-const screenForm   = document.getElementById('screen-form');
-const headerTitle  = document.getElementById('header-title');
-const btnBack      = document.getElementById('btn-back');
-const btnMenu      = document.getElementById('btn-menu');
-const drawerOverlay = document.getElementById('drawer-overlay');
+const screenHome     = document.getElementById('screen-home');
+const screenForm     = document.getElementById('screen-form');
+const headerTitle    = document.getElementById('header-title');
+const btnBack        = document.getElementById('btn-back');
+const btnMenu        = document.getElementById('btn-menu');
+const drawerOverlay  = document.getElementById('drawer-overlay');
 const settingsDrawer = document.getElementById('settings-drawer');
 const btnDrawerClose = document.getElementById('btn-drawer-close');
-const sAssessor    = document.getElementById('s-assessor');
+const sAssessor      = document.getElementById('s-assessor');
 const btnSaveSettings = document.getElementById('btn-save-settings');
-const modalUnsaved = document.getElementById('modal-unsaved');
-const btnModalDraft   = document.getElementById('btn-modal-draft');
+const modalUnsaved   = document.getElementById('modal-unsaved');
+const btnModalDraft  = document.getElementById('btn-modal-draft');
 const btnModalDiscard = document.getElementById('btn-modal-discard');
-const btnModalCancel  = document.getElementById('btn-modal-cancel');
+const btnModalCancel = document.getElementById('btn-modal-cancel');
 
 // ── Boot ───────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -93,25 +92,30 @@ function saveSettings() {
 }
 
 // ── Unsaved-changes modal ──────────────────────────────────────────────────────
-function openUnsavedModal(onSave, onDiscard) {
+// Callers pass callbacks; the modal wires them to buttons once and cleans up.
+function openUnsavedModal(onDraft, onDiscard) {
   modalUnsaved.removeAttribute('hidden');
-  const cleanup = () => { modalUnsaved.setAttribute('hidden', ''); };
-  btnModalDraft.onclick   = () => { cleanup(); onSave?.(); };
+  const cleanup = () => modalUnsaved.setAttribute('hidden', '');
+  btnModalDraft.onclick   = () => { cleanup(); onDraft?.();   };
   btnModalDiscard.onclick = () => { cleanup(); onDiscard?.(); };
-  btnModalCancel.onclick  = () => cleanup();
+  btnModalCancel.onclick  = cleanup;
 }
 
 // ── Toast ──────────────────────────────────────────────────────────────────────
+// type: 'success' | 'warn' | 'error'
 function toast(msg, type = 'success') {
-  const el = document.createElement('div');
-  el.className   = `toast ${type}`;
-  el.textContent = msg;
+  const el = Object.assign(document.createElement('div'), {
+    className:   `toast ${type}`,
+    textContent: msg,
+  });
   document.getElementById('toast-container').appendChild(el);
   setTimeout(() => el.remove(), 2900);
 }
 
 // ── Home screen renderer (stub — populated in later parts) ─────────────────────
 function renderHome() {
+  const records = CA.loadRecords();
+
   screenHome.innerHTML = `
     <div class="home-hero">
       <img src="./assets/LOGO w TEXT black bg.jpg" class="hero-logo"
@@ -120,20 +124,24 @@ function renderHome() {
       <button class="btn btn-primary btn-lg" id="btn-new-record">+ New Record</button>
     </div>
     <div class="list-header">
-      <span class="list-count" id="list-count">0 records</span>
-      <div class="list-export" id="list-export" style="display:none">
+      <span class="list-count">${records.length} record${records.length === 1 ? '' : 's'}</span>
+      <div class="list-export" style="${records.length ? '' : 'display:none'}">
         <button class="btn btn-ghost btn-sm" id="btn-export-csv">↓ CSV</button>
         <button class="btn btn-ghost btn-sm" id="btn-export-geojson">↓ GeoJSON</button>
       </div>
     </div>
     <div class="record-list" id="record-list">
-      <p class="no-records">
-        No records saved yet.<br>
-        Tap <strong>+ New Record</strong> to begin.
-      </p>
+      ${records.length
+        ? '<p class="no-records">Record list coming in Part 3.</p>'
+        : '<p class="no-records">No records saved yet.<br>Tap <strong>+ New Record</strong> to begin.</p>'
+      }
     </div>
   `;
-  document.getElementById('btn-new-record').addEventListener('click', () => showForm(null));
+
+  document.getElementById('btn-new-record').addEventListener('click', () => {
+    const rec = CA.createRecord({ assessor: settings.assessor });
+    showForm(rec);
+  });
 }
 
 // ── Keyboard: Escape closes drawer / modal ─────────────────────────────────────

@@ -2,12 +2,13 @@
    Cache-first strategy. Bump CACHE_NAME to force refresh on deploy.
 */
 
-const CACHE_NAME = 'crossing-assessor-v1';
+const CACHE_NAME = 'crossing-assessor-v2';
 
 const ASSETS = [
   './',
   './index.html',
   './style.css',
+  './data.js',
   './app.js',
   './manifest.json',
   './icons/icon-192.svg',

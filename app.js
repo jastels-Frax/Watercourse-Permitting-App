@@ -211,12 +211,28 @@ function renderForm(record) {
         </div>
       `).join('')}
     </div>
+
+    <div class="form-actions">
+      <button class="btn btn-secondary" id="btn-save-draft" type="button">Save Draft</button>
+      <button class="btn btn-primary"   id="btn-submit"     type="button">Submit</button>
+    </div>
   `;
 
   document.getElementById('section-nav')
     .addEventListener('click', e => {
       const tab = e.target.closest('.nav-tab');
       if (tab) showSection(tab.dataset.section);
+    });
+
+  document.getElementById('btn-save-draft')
+    .addEventListener('click', () => { saveDraft(); exitForm(); });
+
+  document.getElementById('btn-submit')
+    .addEventListener('click', () => {
+      CA.saveRecord({ ...currentRecord, status: 'complete' });
+      formDirty = false;
+      toast(`Submitted — ${currentRecord.crossingId}`, 'success');
+      exitForm();
     });
 
   showSection('id');

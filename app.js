@@ -174,7 +174,8 @@ viewForm.addEventListener('change', () => { formDirty = true; });
  */
 function saveDraft() {
   if (!currentRecord) return null;
-  const saved = CA.saveRecord({ ...currentRecord, status: 'draft' });
+  const data  = collectFormData();
+  const saved = CA.saveRecord({ ...data, status: 'draft' });
   currentRecord = saved;
   formDirty     = false;
   toast(`Draft saved — ${saved.crossingId}`, 'success');
@@ -212,30 +213,41 @@ function renderForm(record) {
       `).join('')}
     </div>
 
-    <div class="form-actions">
-      <button class="btn btn-secondary" id="btn-save-draft" type="button">Save Draft</button>
-      <button class="btn btn-primary"   id="btn-submit"     type="button">Submit</button>
-    </div>
+    <footer class="form-footer" id="form-footer">
+      <div id="footer-draft" class="footer-state">
+        <button class="btn btn-secondary" id="btn-save-draft"  type="button">Save Draft</button>
+        <button class="btn btn-primary"   id="btn-submit"      type="button">Submit</button>
+      </div>
+      <div id="footer-confirm" class="footer-state" hidden>
+        <span class="footer-warn" id="footer-warn-text"></span>
+        <button class="btn btn-ghost"  id="btn-fix-errors"    type="button">Fix Errors</button>
+        <button class="btn btn-danger" id="btn-submit-anyway" type="button">Submit Anyway</button>
+      </div>
+      <div id="footer-complete" class="footer-state" hidden>
+        <span class="lock-msg">Complete — record locked</span>
+        <button class="btn btn-ghost" id="btn-edit" type="button">Edit</button>
+      </div>
+    </footer>
   `;
 
-  document.getElementById('section-nav')
-    .addEventListener('click', e => {
-      const tab = e.target.closest('.nav-tab');
-      if (tab) showSection(tab.dataset.section);
-    });
+  document.getElementById('section-nav').addEventListener('click', e => {
+    const tab = e.target.closest('.nav-tab');
+    if (tab) showSection(tab.dataset.section);
+  });
 
   document.getElementById('btn-save-draft')
-    .addEventListener('click', () => { saveDraft(); exitForm(); });
-
+    .addEventListener('click', saveRecord);
   document.getElementById('btn-submit')
-    .addEventListener('click', () => {
-      CA.saveRecord({ ...currentRecord, status: 'complete' });
-      formDirty = false;
-      toast(`Submitted — ${currentRecord.crossingId}`, 'success');
-      exitForm();
-    });
+    .addEventListener('click', submitRecord);
+  document.getElementById('btn-edit')
+    .addEventListener('click', editRecord);
+  document.getElementById('btn-fix-errors')
+    .addEventListener('click', () => { clearValidationErrors(); setFooterState('draft'); });
+  document.getElementById('btn-submit-anyway')
+    .addEventListener('click', () => { clearValidationErrors(); finalizeSubmit(); });
 
   showSection('id');
+  setFooterState(record.status === 'complete' ? 'complete' : 'draft');
 }
 
 /**
@@ -275,6 +287,149 @@ function setSectionComplete(sectionId, bool) {
     `#section-nav .nav-tab[data-section="${sectionId}"]`
   );
   if (tab) tab.classList.toggle('done', bool);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// FORM ACTIONS — save, submit, edit, validation
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * setFooterState('draft' | 'confirm' | 'complete')
+ * Shows the matching footer-state div and hides the others.
+ * Locks or unlocks all form inputs.
+ */
+function setFooterState(state) {
+  document.getElementById('footer-draft').hidden    = state !== 'draft';
+  document.getElementById('footer-confirm').hidden  = state !== 'confirm';
+  document.getElementById('footer-complete').hidden = state !== 'complete';
+  const locked = state === 'complete';
+  document.querySelectorAll(
+    '#section-panels input, #section-panels select, #section-panels textarea'
+  ).forEach(el => { el.disabled = locked; });
+}
+
+/**
+ * saveRecord()
+ * Saves current form state as a draft without leaving the form.
+ * Shows a "Saved" toast and refreshes section checkmarks.
+ */
+function saveRecord() {
+  if (!currentRecord) return;
+  const data  = collectFormData();
+  const saved = CA.saveRecord({ ...data, status: 'draft' });
+  currentRecord = saved;
+  formDirty     = false;
+  updateSectionCheckmarks();
+  toast('Draft saved', 'success');
+}
+
+/**
+ * submitRecord()
+ * Validates all required fields. If there are errors, shows inline messages
+ * and switches the footer to the confirm state (warn-but-don't-block).
+ * If clean, calls finalizeSubmit() directly.
+ */
+function submitRecord() {
+  if (!currentRecord) return;
+  const data   = collectFormData();
+  const errors = validateForm(data);
+
+  if (errors.length) {
+    showValidationErrors(errors);
+    const warnEl = document.getElementById('footer-warn-text');
+    if (warnEl) {
+      warnEl.textContent =
+        `${errors.length} required field${errors.length === 1 ? '' : 's'} incomplete`;
+    }
+    setFooterState('confirm');
+    return;
+  }
+
+  finalizeSubmit();
+}
+
+/**
+ * finalizeSubmit()
+ * Saves the record as complete, locks the form, updates the footer.
+ */
+function finalizeSubmit() {
+  const data  = collectFormData();
+  const saved = CA.saveRecord({ ...data, status: 'complete' });
+  currentRecord = saved;
+  formDirty     = false;
+  updateSectionCheckmarks();
+  setFooterState('complete');
+  toast(`Submitted — ${saved.crossingId}`, 'success');
+}
+
+/**
+ * editRecord()
+ * Re-opens a complete record for editing (resets status to draft).
+ */
+function editRecord() {
+  if (!currentRecord) return;
+  const saved = CA.saveRecord({ ...currentRecord, status: 'draft' });
+  currentRecord = saved;
+  formDirty     = false;
+  clearValidationErrors();
+  setFooterState('draft');
+  toast('Record unlocked for editing', 'success');
+}
+
+/**
+ * collectFormData()
+ * Reads live field values from each section panel and merges into currentRecord.
+ * Each section adds its own field-collection logic in Parts 3e+.
+ */
+function collectFormData() {
+  // Per-section collection added in Parts 3e+
+  return { ...currentRecord };
+}
+
+/**
+ * validateForm(record)
+ * Returns [{section, fieldId, message}] for required fields that are empty.
+ * Rules are added per section in Parts 3e+.
+ */
+function validateForm(record) {
+  const errors = [];
+  // Per-section validation rules added in Parts 3e+
+  return errors;
+}
+
+/**
+ * showValidationErrors(errors)
+ * Inserts inline error <p> elements below each failing field and navigates
+ * to the section containing the first error.
+ */
+function showValidationErrors(errors) {
+  clearValidationErrors();
+  if (!errors.length) return;
+  showSection(errors[0].section);
+  errors.forEach(({ fieldId, message }) => {
+    const field = document.getElementById(fieldId);
+    if (!field) return;
+    field.classList.add('has-error');
+    const msg = document.createElement('p');
+    msg.className   = 'field-error';
+    msg.id          = `err-${fieldId}`;
+    msg.textContent = message;
+    field.insertAdjacentElement('afterend', msg);
+  });
+}
+
+function clearValidationErrors() {
+  document.querySelectorAll('.field-error').forEach(el => el.remove());
+  document.querySelectorAll('.has-error').forEach(el => el.classList.remove('has-error'));
+}
+
+/**
+ * updateSectionCheckmarks()
+ * Recomputes the ✓ badge on each nav tab based on required-field completeness.
+ * Per-section logic added in Parts 3e+ alongside the real form fields.
+ */
+function updateSectionCheckmarks() {
+  // Per-section completeness logic added in Parts 3e+
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

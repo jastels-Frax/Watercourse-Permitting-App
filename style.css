@@ -819,6 +819,40 @@ input[type="time"] { color-scheme: dark; }
 }
 .form-actions .btn { flex: 1; }
 
+/* ── Form footer (sticky 3-state action bar) ─────────────────────────────────── */
+.form-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 100;
+  background: var(--clr-surface);
+  border-top: 1px solid var(--clr-border);
+  /* Break out of .screen padding — mirrors .section-nav technique */
+  margin-left:  calc(-1 * var(--sp-md));
+  margin-right: calc(-1 * var(--sp-md));
+  width: calc(100% + 2 * var(--sp-md));
+  padding: var(--sp-sm) var(--sp-md);
+  padding-bottom: max(var(--sp-sm), env(safe-area-inset-bottom));
+}
+.footer-state {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-sm);
+}
+.footer-state .btn { flex: 1; }
+.footer-warn {
+  flex: 1;
+  font-size: var(--text-xs);
+  color: var(--clr-warn);
+  font-weight: 700;
+  line-height: 1.4;
+}
+.lock-msg {
+  flex: 1;
+  font-size: var(--text-sm);
+  color: var(--clr-accent);
+  font-weight: 600;
+}
+
 /* ── Lock banner (complete records) ─────────────────────────────────────────── */
 .lock-banner {
   display: flex;

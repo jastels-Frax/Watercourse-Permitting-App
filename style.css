@@ -707,6 +707,10 @@ input[type="time"] { color-scheme: dark; }
   border-color: rgba(76,175,80,0.4);
   color: var(--clr-accent);
 }
+.nav-tab.done.active {
+  background: var(--clr-accent-dim);
+  border-color: var(--clr-accent);
+}
 
 .nav-check {
   font-size: 0.65rem;
@@ -716,20 +720,18 @@ input[type="time"] { color-scheme: dark; }
 }
 .nav-tab.done .nav-check { opacity: 1; }
 
-/* ── Form sections (accordion <details>) ────────────────────────────────────── */
+/* ── Form section panels (show-exclusively — one visible at a time) ─────────── */
 .form-section {
-  background: var(--clr-surface);
-  border: 1px solid var(--clr-border);
-  border-radius: var(--radius);
-  margin-bottom: 8px;
-  overflow: hidden;
+  padding-bottom: var(--sp-xl);
 }
-.form-section > .section-header { border-radius: var(--radius); }
-.form-section[open] > .section-header {
-  border-bottom: 1px solid var(--clr-border);
-  border-radius: var(--radius) var(--radius) 0 0;
+.section-body { padding: var(--sp-sm) 0; }
+
+.section-stub {
+  color: var(--clr-text-3);
+  font-size: var(--text-sm);
+  text-align: center;
+  padding: var(--sp-xl) 0;
 }
-.section-body { padding: var(--sp-md); }
 
 /* Sections hidden when watercourse absent (wc-cond class toggled by JS) */
 .wc-cond { display: none; }

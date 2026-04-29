@@ -9,6 +9,21 @@
 const SETTINGS_KEY = 'ca_settings';
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// SECTIONS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const SECTIONS = [
+  { id: 'id',       label: 'ID'       },
+  { id: 'wc',       label: 'WC'       },
+  { id: 'fish',     label: 'Fish'     },
+  { id: 'geo',      label: 'Geo'      },
+  { id: 'crossing', label: 'Crossing' },
+  { id: 'wetland',  label: 'Wetland'  },
+  { id: 'photos',   label: 'Photos'   },
+  { id: 'permits',  label: 'Permits'  },
+];
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -24,6 +39,9 @@ let currentRecord = null;
 // True once the user has altered any field since the form was opened.
 // Reset to false whenever the form is opened or the record is saved.
 let formDirty     = false;
+
+// Which section tab is active while in form view.
+let activeSection = 'id';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // DOM REFS
@@ -103,7 +121,7 @@ function openRecord(record) {
   currentRecord = record;
   formDirty     = false;
   showView('form');
-  renderFormShell(record);     // replaced by full form renderer in Part 3b+
+  renderForm(record);
 }
 
 /**
@@ -164,53 +182,75 @@ function saveDraft() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// FORM SHELL RENDERER  (placeholder — replaced in Part 3b+)
+// FORM RENDERER — section navigator + per-section panels
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * renderFormShell(record)
- * Temporary placeholder showing which record is open.
- * Includes a "Simulate change" button so the dirty-flag guard can be verified
- * before the real form fields exist.
- * This function is overwritten in Part 3b.
+ * renderForm(record)
+ * Renders the sticky section-nav strip and one panel per section into
+ * #view-form. Only the active section panel is visible at any time.
+ * Wires tab clicks to showSection(). Section content is filled in by
+ * later parts (3c+); stubs are shown until then.
  */
-function renderFormShell(record) {
+function renderForm(record) {
   viewForm.innerHTML = `
-    <div style="padding:var(--sp-md);display:grid;gap:var(--sp-md)">
-      <div class="msg msg-info">
-        <strong>${esc(record.crossingId)}</strong> is open —
-        full form sections will be added in Part 3b–3h.
-      </div>
-      <p class="helper-text">
-        Status: <strong>${record.status}</strong> &nbsp;·&nbsp;
-        Created: <strong>${record.createdAt.slice(0, 10)}</strong>
-      </p>
-      <button class="btn btn-ghost" id="btn-sim-change">
-        Simulate field change (test dirty flag)
-      </button>
-      <div class="form-actions">
-        <button class="btn btn-secondary" id="btn-shell-draft">Save Draft</button>
-        <button class="btn btn-primary"   id="btn-shell-submit">Submit</button>
-      </div>
+    <nav class="section-nav" id="section-nav" aria-label="Form sections">
+      ${SECTIONS.map(s => `
+        <button class="nav-tab" data-section="${esc(s.id)}" type="button"
+                aria-label="${esc(s.label)} section">
+          <span class="nav-check" aria-hidden="true">✓</span>${esc(s.label)}
+        </button>
+      `).join('')}
+    </nav>
+
+    <div id="section-panels">
+      ${SECTIONS.map(s => `
+        <div class="form-section" data-section="${esc(s.id)}" hidden>
+          <p class="section-stub">${esc(s.label)} — fields coming soon.</p>
+        </div>
+      `).join('')}
     </div>
   `;
 
-  document.getElementById('btn-sim-change')
-    .addEventListener('click', () => {
-      formDirty = true;
-      toast('Dirty flag set — try the back button', 'warn');
+  document.getElementById('section-nav')
+    .addEventListener('click', e => {
+      const tab = e.target.closest('.nav-tab');
+      if (tab) showSection(tab.dataset.section);
     });
 
-  document.getElementById('btn-shell-draft')
-    .addEventListener('click', () => { saveDraft(); exitForm(); });
+  showSection('id');
+}
 
-  document.getElementById('btn-shell-submit')
-    .addEventListener('click', () => {
-      CA.saveRecord({ ...currentRecord, status: 'complete' });
-      formDirty = false;
-      toast(`Submitted — ${currentRecord.crossingId}`, 'success');
-      exitForm();
-    });
+/**
+ * showSection(sectionId)
+ * Highlights the matching nav tab and makes its panel visible while hiding all
+ * others. Scrolls the tab into view horizontally if the strip overflows.
+ */
+function showSection(sectionId) {
+  activeSection = sectionId;
+
+  document.querySelectorAll('#section-nav .nav-tab').forEach(tab => {
+    tab.classList.toggle('active', tab.dataset.section === sectionId);
+  });
+
+  document.querySelectorAll('#section-panels .form-section').forEach(panel => {
+    panel.toggleAttribute('hidden', panel.dataset.section !== sectionId);
+  });
+
+  document.querySelector(`#section-nav .nav-tab[data-section="${sectionId}"]`)
+    ?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+}
+
+/**
+ * setSectionComplete(sectionId, bool)
+ * Lights up (or clears) the ✓ badge on a nav tab.
+ * Called by field-validation logic as fields are filled.
+ */
+function setSectionComplete(sectionId, bool) {
+  const tab = document.querySelector(
+    `#section-nav .nav-tab[data-section="${sectionId}"]`
+  );
+  if (tab) tab.classList.toggle('done', bool);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="80" fill="#16213e"/>
+  <!-- Road deck (two bars) -->
+  <rect x="96" y="144" width="320" height="48" rx="24" fill="#4caf50"/>
+  <rect x="96" y="320" width="320" height="48" rx="24" fill="#4caf50"/>
+  <!-- Water waves -->
+  <path d="M20 236 C80 208 144 272 256 236 S432 208 492 236"
+        stroke="#2196f3" stroke-width="26" fill="none"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M20 298 C80 270 144 334 256 298 S432 270 492 298"
+        stroke="#2196f3" stroke-width="16" fill="none"
+        stroke-linecap="round" stroke-linejoin="round" opacity="0.55"/>
+</svg>

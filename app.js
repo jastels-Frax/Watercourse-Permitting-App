@@ -254,11 +254,17 @@ function setSectionComplete(sectionId, bool) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// LIST VIEW RENDERER  (stub — full cards added in Part 3c+)
+// LIST VIEW RENDERER
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function renderList() {
-  const records = CA.loadRecords();
+  // Sort by date descending; fall back to createdAt for same-day records
+  const records = [...CA.loadRecords()].sort((a, b) => {
+    const da = (a.date || a.createdAt || '').slice(0, 10);
+    const db = (b.date || b.createdAt || '').slice(0, 10);
+    if (db !== da) return db.localeCompare(da);
+    return (b.createdAt || '').localeCompare(a.createdAt || '');
+  });
 
   viewList.innerHTML = `
     <div class="home-hero">
@@ -272,14 +278,18 @@ function renderList() {
 
     <div class="list-header">
       <span class="list-count">
-        ${records.length} record${records.length === 1 ? '' : 's'}
+        ${records.length} crossing${records.length === 1 ? '' : 's'}
       </span>
+      <div class="list-export">
+        <button class="btn btn-ghost" id="btn-export-csv"     type="button">CSV</button>
+        <button class="btn btn-ghost" id="btn-export-geojson" type="button">GeoJSON</button>
+      </div>
     </div>
 
     <div class="record-list" id="record-list">
       ${records.length === 0
         ? `<p class="no-records">
-             No records saved yet.<br>
+             No crossings recorded yet.<br>
              Tap <strong>+ New Record</strong> to begin.
            </p>`
         : records.map(r => renderRecordCard(r)).join('')
@@ -287,13 +297,16 @@ function renderList() {
     </div>
   `;
 
-  // New Record button
   document.getElementById('btn-new-record')
-    .addEventListener('click', () => {
-      openRecord(CA.createRecord({ assessor: settings.assessor }));
-    });
+    .addEventListener('click', newRecord);
 
-  // Tap any existing record card to reopen it
+  document.getElementById('btn-export-csv')
+    .addEventListener('click', exportCSV);
+
+  document.getElementById('btn-export-geojson')
+    .addEventListener('click', exportGeoJSON);
+
+  // Tap any card to reopen that record
   document.getElementById('record-list')
     .addEventListener('click', e => {
       const card = e.target.closest('[data-record-id]');
@@ -305,19 +318,23 @@ function renderList() {
 
 /**
  * renderRecordCard(record) → HTML string
- * Stub card — shows ID, status, date. Full card built in Part 3c.
+ * Shows crossing ID, SAR flag, priority tier, status badge, date, watershed.
  */
 function renderRecordCard(r) {
   const statusClass = r.status === 'complete' ? 'badge-complete' : 'badge-draft';
   const statusLabel = r.status === 'complete' ? 'Complete' : 'Draft';
+  const sarBadge      = r.sarPolygon
+    ? '<span class="badge badge-sar">SAR</span>' : '';
+  const priorityBadge = r.priority
+    ? `<span class="badge badge-${esc(r.priority.toLowerCase())}">${esc(r.priority)}</span>` : '';
 
   return `
     <button class="record-card" data-record-id="${esc(r.id)}"
             aria-label="Open record ${esc(r.crossingId)}">
       <div class="rc-header">
-        <span class="rc-id">${esc(r.crossingId)}</span>
+        <span class="rc-id">${esc(r.crossingId || '—')}</span>
+        ${sarBadge}${priorityBadge}
         <span class="badge ${statusClass}">${statusLabel}</span>
-        ${r.sarPolygon ? '<span class="badge badge-sar">SAR</span>' : ''}
       </div>
       <div class="rc-meta">
         <span>${esc(r.date || '—')}</span>
@@ -325,6 +342,29 @@ function renderRecordCard(r) {
       </div>
     </button>
   `;
+}
+
+// ── List actions ───────────────────────────────────────────────────────────────
+
+/**
+ * newRecord()
+ * Creates a fresh record pre-populated with today's date, current time, and
+ * the next auto-incremented Crossing ID, then opens it in the form view.
+ */
+function newRecord() {
+  openRecord(CA.createRecord({ assessor: settings.assessor }));
+}
+
+/**
+ * exportCSV() / exportGeoJSON()
+ * Stubs — full implementation in Part 13.
+ */
+function exportCSV() {
+  toast('CSV export — coming in Part 13', 'warn');
+}
+
+function exportGeoJSON() {
+  toast('GeoJSON export — coming in Part 13', 'warn');
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

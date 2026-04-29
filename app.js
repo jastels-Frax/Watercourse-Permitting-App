@@ -193,6 +193,7 @@ function saveDraft() {
  * later parts (3c+); stubs are shown until then.
  */
 function renderForm(record) {
+  console.log('[CA] renderForm:', record?.crossingId);
   viewForm.innerHTML = `
     <nav class="section-nav" id="section-nav" aria-label="Form sections">
       ${SECTIONS.map(s => `
@@ -227,14 +228,21 @@ function renderForm(record) {
  * others. Scrolls the tab into view horizontally if the strip overflows.
  */
 function showSection(sectionId) {
+  console.log('[CA] showSection:', sectionId);
   activeSection = sectionId;
 
   document.querySelectorAll('#section-nav .nav-tab').forEach(tab => {
     tab.classList.toggle('active', tab.dataset.section === sectionId);
   });
 
+  // Explicit setAttribute/removeAttribute for broad Safari compatibility —
+  // toggleAttribute(name, force) was not supported before Safari 12.1.
   document.querySelectorAll('#section-panels .form-section').forEach(panel => {
-    panel.toggleAttribute('hidden', panel.dataset.section !== sectionId);
+    if (panel.dataset.section === sectionId) {
+      panel.removeAttribute('hidden');
+    } else {
+      panel.setAttribute('hidden', '');
+    }
   });
 
   document.querySelector(`#section-nav .nav-tab[data-section="${sectionId}"]`)

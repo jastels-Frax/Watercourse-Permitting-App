@@ -730,7 +730,7 @@ input[type="time"] { color-scheme: dark; }
 .section-body { padding: var(--sp-sm) 0; }
 
 .section-stub {
-  color: var(--clr-text-3);
+  color: var(--clr-text-2);
   font-size: var(--text-sm);
   text-align: center;
   padding: var(--sp-xl) 0;

@@ -14,19 +14,25 @@
 
   <title>Crossing Assessor</title>
   <link rel="manifest" href="./manifest.json" />
-
-  <!-- iOS touch icons -->
   <link rel="apple-touch-icon" href="./icons/icon-192.svg" />
-
   <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
 
-<!-- ── App header ──────────────────────────────────────────────────────────── -->
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     APP HEADER — sticky, always visible.
+     Back button: hidden on list view, visible on form view (JS-controlled).
+     Logo: brand mark, always visible.
+     Title: "Crossing Assessor" on list; crossing ID on form.
+     Menu: opens settings drawer.
+════════════════════════════════════════════════════════════════════════════ -->
 <header class="app-header" id="app-header">
-  <button id="btn-back" class="icon-btn header-back" aria-label="Back to record list" hidden>
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+
+  <button id="btn-back" class="icon-btn header-back"
+          aria-label="Back to record list" hidden>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+         aria-hidden="true" width="22" height="22">
       <path d="M19 12H5M12 5l-7 7 7 7"/>
     </svg>
   </button>
@@ -34,39 +40,59 @@
   <img src="./assets/LOGO black bg.jpg" class="header-logo"
        alt="Fraxinus Environmental &amp; Geomatics" />
 
-  <span class="header-title" id="header-title" aria-live="polite"></span>
+  <span class="header-title" id="header-title" aria-live="polite">
+    Crossing Assessor
+  </span>
 
-  <button id="btn-menu" class="icon-btn header-menu" aria-label="Open settings">
+  <button id="btn-menu" class="icon-btn header-menu"
+          aria-label="Open settings" aria-haspopup="dialog">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+         stroke-linecap="round" stroke-linejoin="round"
+         aria-hidden="true" width="22" height="22">
       <circle cx="12" cy="12" r="3"/>
-      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83
+               2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1
+               1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65
+               1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65
+               1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1
+               0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82
+               l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9
+               4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65
+               0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1
+               2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0
+               1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
     </svg>
   </button>
+
 </header>
 
 <!-- ── Toast container ─────────────────────────────────────────────────────── -->
 <div id="toast-container" aria-live="assertive" aria-atomic="true"></div>
 
-<!-- ── Settings drawer overlay ────────────────────────────────────────────── -->
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     SETTINGS DRAWER
+     Always in DOM. open/close toggled via .open class on both overlay and
+     drawer — keeps CSS transitions working without display:none thrash.
+════════════════════════════════════════════════════════════════════════════ -->
 <div id="drawer-overlay" class="drawer-overlay" aria-hidden="true"></div>
 
-<!-- ── Settings drawer ────────────────────────────────────────────────────── -->
-<aside id="settings-drawer" class="drawer" role="dialog" aria-modal="true"
-       aria-label="App settings" aria-hidden="true">
+<aside id="settings-drawer" class="drawer"
+       role="dialog" aria-modal="true" aria-label="App settings"
+       aria-hidden="true">
   <div class="drawer-header">
     <span class="drawer-title">Settings</span>
     <button id="btn-drawer-close" class="icon-btn" aria-label="Close settings">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-           stroke-linecap="round" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2.5" stroke-linecap="round"
+           aria-hidden="true" width="22" height="22">
         <path d="M18 6L6 18M6 6l12 12"/>
       </svg>
     </button>
   </div>
   <div class="drawer-body">
     <p class="helper-text">
-      Default assessor name pre-fills every new record. You can still edit it
-      per record before saving.
+      Default assessor name pre-fills every new record.
+      You can still edit it per record before saving.
     </p>
     <div class="field-stack">
       <label class="field-label" for="s-assessor">
@@ -83,33 +109,52 @@
   </div>
 </aside>
 
-<!-- ── Main application area ──────────────────────────────────────────────── -->
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     MAIN — contains exactly two views; only one is visible at a time.
+     showView() in app.js toggles the `hidden` attribute.
+════════════════════════════════════════════════════════════════════════════ -->
 <main id="main">
 
-  <!-- HOME screen — record list + export actions -->
-  <section id="screen-home" class="screen" aria-label="Record list"></section>
+  <!-- VIEW: Record List (default, shown on load) -->
+  <section id="view-list" class="screen"
+           aria-label="Saved crossing records">
+    <!-- Rendered dynamically by renderList() in app.js -->
+  </section>
 
-  <!-- FORM screen — full crossing survey form -->
-  <section id="screen-form" class="screen" aria-label="Crossing survey form" hidden></section>
+  <!-- VIEW: Survey Form (shown when a record is opened) -->
+  <section id="view-form" class="screen"
+           aria-label="Crossing survey form" hidden>
+    <!-- Rendered dynamically by openRecord() in app.js -->
+  </section>
 
 </main>
 
-<!-- ── Unsaved-changes modal ──────────────────────────────────────────────── -->
-<div id="modal-unsaved" class="modal-backdrop" role="dialog" aria-modal="true"
-     aria-labelledby="modal-title" hidden>
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     UNSAVED-CHANGES MODAL
+     Shown by openUnsavedModal() when the user tries to leave a dirty form.
+     Three actions: Save Draft → Discard → Keep Editing.
+════════════════════════════════════════════════════════════════════════════ -->
+<div id="modal-unsaved" class="modal-backdrop"
+     role="dialog" aria-modal="true" aria-labelledby="modal-unsaved-title"
+     hidden>
   <div class="modal-card">
-    <p id="modal-title" class="modal-title">Unsaved changes</p>
-    <p class="modal-body">Save as draft before leaving?</p>
+    <p id="modal-unsaved-title" class="modal-title">Unsaved changes</p>
+    <p class="modal-body">
+      You have unsaved changes on this record. What would you like to do?
+    </p>
     <div class="modal-actions">
-      <button id="btn-modal-draft"   class="btn btn-primary  btn-block">Save Draft</button>
-      <button id="btn-modal-discard" class="btn btn-danger   btn-block">Discard Changes</button>
+      <button id="btn-modal-draft"   class="btn btn-primary   btn-block">Save Draft</button>
+      <button id="btn-modal-discard" class="btn btn-danger    btn-block">Discard Changes</button>
       <button id="btn-modal-cancel"  class="btn btn-secondary btn-block">Keep Editing</button>
     </div>
   </div>
 </div>
 
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     SERVICE WORKER REGISTRATION
+     Runs before defer scripts so caching starts as early as possible.
+════════════════════════════════════════════════════════════════════════════ -->
 <script>
-  /* Register service worker as early as possible */
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('./sw.js')
@@ -117,7 +162,9 @@
     });
   }
 </script>
-<script src="./data.js" defer></script>
-<script src="./app.js" defer></script>
+
+<!-- data.js must load before app.js (CA namespace dependency) -->
+<script src="./data.js"  defer></script>
+<script src="./app.js"   defer></script>
 </body>
 </html>

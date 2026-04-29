@@ -650,3 +650,356 @@ input[type="time"] { color-scheme: dark; }
 ::-webkit-scrollbar       { width: 6px; }
 ::-webkit-scrollbar-track { background: var(--clr-bg); }
 ::-webkit-scrollbar-thumb { background: var(--clr-border-2); border-radius: 3px; }
+
+/* =============================================================================
+   Part 3 additions — record list, section navigator, form shell
+   ========================================================================== */
+
+/* ── Section navigator (sticky pill strip) ──────────────────────────────────── */
+.section-nav {
+  position: sticky;
+  top: 56px;                      /* flush below the 56px app-header */
+  z-index: 150;
+  display: flex;
+  gap: 6px;
+  padding: 8px var(--sp-md);
+  background: var(--clr-bg);
+  border-bottom: 1px solid var(--clr-border);
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  /* pull flush with .screen padding so it spans edge-to-edge */
+  margin-left:  calc(-1 * var(--sp-md));
+  margin-right: calc(-1 * var(--sp-md));
+  width: calc(100% + 2 * var(--sp-md));
+}
+.section-nav::-webkit-scrollbar { display: none; }
+
+.nav-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 11px;
+  height: 34px;
+  border-radius: 17px;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  cursor: pointer;
+  border: 1.5px solid var(--clr-border);
+  background: var(--clr-surface);
+  color: var(--clr-text-2);
+  flex-shrink: 0;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  text-decoration: none;
+  line-height: 1;
+}
+.nav-tab:active { transform: scale(0.94); }
+
+.nav-tab.active {
+  background: var(--clr-accent-dim);
+  border-color: var(--clr-accent);
+  color: var(--clr-accent);
+}
+.nav-tab.done {
+  border-color: rgba(76,175,80,0.4);
+  color: var(--clr-accent);
+}
+
+.nav-check {
+  font-size: 0.65rem;
+  font-weight: 900;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.nav-tab.done .nav-check { opacity: 1; }
+
+/* ── Form sections (accordion <details>) ────────────────────────────────────── */
+.form-section {
+  background: var(--clr-surface);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+.form-section > .section-header { border-radius: var(--radius); }
+.form-section[open] > .section-header {
+  border-bottom: 1px solid var(--clr-border);
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+.section-body { padding: var(--sp-md); }
+
+/* Sections hidden when watercourse absent (wc-cond class toggled by JS) */
+.wc-cond { display: none; }
+.wc-cond.show { display: block; }
+
+/* ── Record cards (home screen list) ────────────────────────────────────────── */
+.record-list  { display: flex; flex-direction: column; gap: 8px; }
+
+.record-card {
+  background: var(--clr-surface);
+  border: 1.5px solid var(--clr-border);
+  border-radius: var(--radius);
+  padding: var(--sp-md);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  display: grid;
+  gap: 6px;
+  text-align: left;
+  width: 100%;
+}
+.record-card:hover  { border-color: var(--clr-accent); background: var(--clr-surface2); }
+.record-card:active { transform: scale(0.99); }
+
+.rc-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.rc-id {
+  font-size: var(--text-xl);
+  font-weight: 800;
+  color: var(--clr-text);
+  flex: 1;
+  letter-spacing: 0.02em;
+}
+.rc-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: var(--text-sm);
+  color: var(--clr-text-2);
+}
+.rc-dot {
+  width: 3px; height: 3px;
+  border-radius: 50%;
+  background: var(--clr-text-3);
+  flex-shrink: 0;
+}
+
+/* ── Badges (status, SAR, priority) ─────────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: var(--text-xs);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1.5px solid;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.badge-draft    { color: var(--clr-text-2); border-color: var(--clr-border-2);        background: var(--clr-surface3); }
+.badge-complete { color: var(--clr-accent);  border-color: rgba(76,175,80,0.45);       background: rgba(76,175,80,0.1); }
+.badge-sar      { color: var(--clr-danger);  border-color: rgba(239,83,80,0.5);        background: rgba(239,83,80,0.12); }
+.badge-p1       { color: var(--clr-danger);  border-color: rgba(239,83,80,0.45);       background: rgba(239,83,80,0.1); }
+.badge-p2       { color: var(--clr-warn);    border-color: rgba(255,193,7,0.45);       background: rgba(255,193,7,0.1); }
+.badge-p3       { color: var(--clr-accent);  border-color: rgba(76,175,80,0.45);       background: rgba(76,175,80,0.1); }
+.badge-pass     { color: var(--clr-accent);  border-color: rgba(76,175,80,0.45);       background: rgba(76,175,80,0.1); }
+.badge-partial  { color: var(--clr-warn);    border-color: rgba(255,193,7,0.45);       background: rgba(255,193,7,0.1); }
+.badge-barrier  { color: var(--clr-danger);  border-color: rgba(239,83,80,0.45);       background: rgba(239,83,80,0.1); }
+
+/* ── Form actions (Save Draft / Submit) ─────────────────────────────────────── */
+.form-actions {
+  display: flex;
+  gap: var(--sp-sm);
+  padding: var(--sp-md) 0 var(--sp-xl);
+}
+.form-actions .btn { flex: 1; }
+
+/* ── Lock banner (complete records) ─────────────────────────────────────────── */
+.lock-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-md);
+  padding: var(--sp-md);
+  margin-bottom: 8px;
+  background: rgba(76,175,80,0.07);
+  border: 1.5px solid rgba(76,175,80,0.35);
+  border-radius: var(--radius);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--clr-accent);
+}
+.lock-banner span { flex: 1; }
+
+/* ── SAR banner (form top) ──────────────────────────────────────────────────── */
+.sar-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-sm);
+  padding: var(--sp-md);
+  margin-bottom: 8px;
+  background: var(--clr-danger-dim);
+  border: 2px solid rgba(239,83,80,0.5);
+  border-radius: var(--radius);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--clr-danger);
+  letter-spacing: 0.03em;
+}
+
+/* ── Inline validation errors ───────────────────────────────────────────────── */
+.field-error {
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--clr-danger);
+  font-weight: 600;
+  margin-top: 3px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+input.has-error,
+select.has-error,
+textarea.has-error {
+  border-color: var(--clr-danger) !important;
+  box-shadow: 0 0 0 3px var(--clr-danger-dim) !important;
+}
+
+/* ── GPS row ────────────────────────────────────────────────────────────────── */
+.gps-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: var(--sp-sm);
+  align-items: end;
+}
+.gps-status {
+  font-size: var(--text-xs);
+  color: var(--clr-text-2);
+  min-height: 1.2em;
+  grid-column: 1 / -1;
+}
+.gps-status.good  { color: var(--clr-accent); }
+.gps-status.warn  { color: var(--clr-warn);   }
+.gps-status.error { color: var(--clr-danger); }
+
+/* ── Substrate total bar ────────────────────────────────────────────────────── */
+.sub-total-bar {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--clr-surface2);
+  border: 1.5px solid var(--clr-border);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--clr-text-2);
+  transition: border-color 0.2s, color 0.2s;
+}
+.sub-total-bar.ok   { border-color: var(--clr-accent); color: var(--clr-accent); }
+.sub-total-bar.over { border-color: var(--clr-danger);  color: var(--clr-danger); }
+.sub-total-num { font-size: var(--text-xl); font-weight: 800; }
+
+/* ── Fish-passage rating select colour states ───────────────────────────────── */
+select.fp-pass    { border-color: var(--clr-accent) !important; color: var(--clr-accent)  !important; }
+select.fp-partial { border-color: var(--clr-warn)   !important; color: var(--clr-warn)    !important; }
+select.fp-barrier { border-color: var(--clr-danger)  !important; color: var(--clr-danger)  !important; }
+
+/* ── Passage hint ───────────────────────────────────────────────────────────── */
+.passage-hint {
+  padding: var(--sp-sm) var(--sp-md);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  line-height: 1.55;
+  border: 1.5px solid transparent;
+}
+.passage-hint.pass    { background:rgba(76,175,80,0.1);  border-color:rgba(76,175,80,0.35);  color:var(--clr-accent); }
+.passage-hint.partial { background:rgba(255,193,7,0.1);  border-color:rgba(255,193,7,0.35);  color:var(--clr-warn);   }
+.passage-hint.barrier { background:rgba(239,83,80,0.1);  border-color:rgba(239,83,80,0.35);  color:var(--clr-danger); }
+
+/* ── Inline message variants ────────────────────────────────────────────────── */
+.msg {
+  padding: var(--sp-sm) var(--sp-md);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  line-height: 1.55;
+  border: 1.5px solid transparent;
+}
+.msg-info    { background:var(--clr-info-dim);    border-color:rgba(41,182,246,0.35);  color:var(--clr-info);   }
+.msg-success { background:var(--clr-accent-dim);  border-color:rgba(76,175,80,0.35);   color:var(--clr-accent); }
+.msg-warn    { background:var(--clr-warn-dim);    border-color:rgba(255,193,7,0.35);   color:var(--clr-warn);   }
+.msg-danger  { background:var(--clr-danger-dim);  border-color:rgba(239,83,80,0.35);   color:var(--clr-danger); }
+
+/* ── Permit suggestion block ────────────────────────────────────────────────── */
+.permit-suggest {
+  background: var(--clr-surface2);
+  border: 1px solid var(--clr-border-2);
+  border-radius: var(--radius-sm);
+  padding: var(--sp-md);
+  display: grid;
+  gap: 10px;
+}
+.ps-row    { display: flex; flex-direction: column; gap: 3px; }
+.ps-label  { font-size: var(--text-xs); font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--clr-text-2); }
+.ps-value  { font-size: var(--text-sm); font-weight: 700; color: var(--clr-accent); }
+
+/* ── Reach guidance chip ────────────────────────────────────────────────────── */
+.reach-chip {
+  padding: var(--sp-sm) var(--sp-md);
+  border-radius: var(--radius-sm);
+  background: var(--clr-info-dim);
+  border: 1px solid rgba(41,182,246,0.3);
+  color: var(--clr-info);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+/* ── Outlet drop warning ────────────────────────────────────────────────────── */
+.outlet-warn {
+  padding: var(--sp-sm) var(--sp-md);
+  border-radius: var(--radius-sm);
+  background: var(--clr-warn-dim);
+  border: 1.5px solid rgba(255,193,7,0.4);
+  color: var(--clr-warn);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+/* ── Home hero ──────────────────────────────────────────────────────────────── */
+.home-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-md);
+  padding: var(--sp-xl) var(--sp-md) var(--sp-lg);
+  text-align: center;
+}
+.hero-logo {
+  width: min(88vw, 360px);
+  height: auto;
+  border-radius: var(--radius-sm);
+  mix-blend-mode: screen;
+}
+.hero-tagline {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--clr-text-2);
+  letter-spacing: 0.04em;
+}
+.list-header {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-sm);
+  flex-wrap: wrap;
+  margin-bottom: var(--sp-md);
+}
+.list-count { flex: 1; font-size: var(--text-sm); color: var(--clr-text-2); }
+.list-export { display: flex; gap: var(--sp-xs); }
+.no-records {
+  text-align: center;
+  color: var(--clr-text-2);
+  font-size: var(--text-sm);
+  padding: var(--sp-xl) 0;
+  line-height: 1.8;
+}

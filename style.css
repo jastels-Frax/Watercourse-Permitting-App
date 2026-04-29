@@ -51,6 +51,9 @@
   /* Touch targets */
   --tap:    44px;
 
+  /* App header height — keep in sync with .app-header min-height */
+  --header-h: 56px;
+
   /* Typography */
   --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
                'Helvetica Neue', Arial, sans-serif;
@@ -144,6 +147,8 @@ button { font-family: inherit; }
   max-width: 640px;
   margin: 0 auto;
   padding: var(--sp-md);
+  /* Prevent content clipping behind iPhone home indicator (viewport-fit=cover) */
+  padding-bottom: max(var(--sp-md), env(safe-area-inset-bottom));
 }
 
 /* ── Buttons ────────────────────────────────────────────────────────────────── */
@@ -636,8 +641,6 @@ input[type="time"] { color-scheme: dark; }
 .list-count  { flex: 1; font-size: var(--text-sm); color: var(--clr-text-2); }
 .list-export { display: flex; gap: var(--sp-xs); }
 
-.record-list { display: flex; flex-direction: column; gap: var(--sp-sm); }
-
 .no-records {
   text-align: center;
   color: var(--clr-text-2);
@@ -658,7 +661,7 @@ input[type="time"] { color-scheme: dark; }
 /* ── Section navigator (sticky pill strip) ──────────────────────────────────── */
 .section-nav {
   position: sticky;
-  top: 56px;                      /* flush below the 56px app-header */
+  top: var(--header-h);           /* flush below the app-header */
   z-index: 150;
   display: flex;
   gap: 6px;

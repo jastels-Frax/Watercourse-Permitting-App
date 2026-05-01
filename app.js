@@ -1533,16 +1533,28 @@ function setFooterState(state) {
 /**
  * saveRecord()
  * Saves current form state as a draft without leaving the form.
- * Shows a "Saved" toast and refreshes section checkmarks.
+ * Runs validation and shows inline warnings for any incomplete required fields,
+ * but always proceeds with the save regardless of errors. Footer stays in 'draft'.
  */
 function saveRecord() {
   if (!currentRecord) return;
-  const data  = collectFormData();
-  const saved = CA.saveRecord({ ...data, status: 'draft' });
+  const data   = collectFormData();
+  const errors = validateForm(data);
+  const saved  = CA.saveRecord({ ...data, status: 'draft' });
   currentRecord = saved;
   formDirty     = false;
   updateSectionCheckmarks();
-  toast('Draft saved', 'success');
+
+  if (errors.length) {
+    showValidationErrors(errors);
+    toast(
+      `Draft saved — ${errors.length} required field${errors.length === 1 ? '' : 's'} incomplete`,
+      'warn'
+    );
+  } else {
+    clearValidationErrors();
+    toast(`Draft saved — ${saved.crossingId}`, 'success');
+  }
 }
 
 /**
@@ -1572,13 +1584,14 @@ function submitRecord() {
 
 /**
  * finalizeSubmit()
- * Saves the record as complete, locks the form, updates the footer.
+ * Saves the record as complete, clears any inline errors, locks the form.
  */
 function finalizeSubmit() {
   const data  = collectFormData();
   const saved = CA.saveRecord({ ...data, status: 'complete' });
   currentRecord = saved;
   formDirty     = false;
+  clearValidationErrors();
   updateSectionCheckmarks();
   setFooterState('complete');
   toast(`Submitted — ${saved.crossingId}`, 'success');

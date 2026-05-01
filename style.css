@@ -272,6 +272,19 @@ input:focus, select:focus, textarea:focus {
   box-shadow: 0 0 0 3px var(--clr-accent-dim);
 }
 
+/* Locked / complete-record state */
+input:disabled,
+select:disabled,
+textarea:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+/* Toggle track dims when its (visually hidden) checkbox is disabled */
+.toggle-wrap input:disabled + .toggle-track { opacity: 0.45; }
+.toggle-wrap:has(input:disabled) { pointer-events: none; cursor: not-allowed; }
+/* Checkbox rows dim when disabled */
+.checkbox-label:has(input:disabled) { opacity: 0.45; pointer-events: none; }
+
 input.has-error { border-color: var(--clr-danger) !important; }
 
 textarea { min-height: 80px; resize: vertical; }

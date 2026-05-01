@@ -260,6 +260,7 @@ function renderForm(record) {
   initSectionGeo(record);
   initSectionCrossing(record);
   initSectionWetland(record);
+  initSectionPhotos(record);
   // setFooterState runs last so it can disable inputs added by init functions
   setFooterState(record.status === 'complete' ? 'complete' : 'draft');
 }
@@ -1266,6 +1267,78 @@ function initSectionWetland(record) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// SECTION 6 — Photography Checklist
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const REQUIRED_PHOTO_KEYS = [
+  'upstream', 'downstream', 'inlet', 'outlet',
+  'outletDrop', 'barrelInterior', 'upstreamHabitat', 'downstreamHabitat',
+];
+
+function initSectionPhotos(record) {
+  const panel = document.querySelector('#section-panels .form-section[data-section="photos"]');
+  if (!panel) return;
+
+  const ph = record.photos || {};
+
+  // Additional shots are shown when the corresponding observation was recorded
+  const showFishSign = !!(record.fishObserved || record.fishSign || record.reddsObserved);
+  const showDamage   = !!record.crossingPresent;
+  const showWetland  = !!record.wetlandPresent;
+  const showSar      = !!record.sarPolygon;
+  const hasAdditional = showFishSign || showDamage || showWetland || showSar;
+
+  function chk(id, checked, label) {
+    return `
+      <label class="checkbox-label">
+        <input type="checkbox" id="${esc(id)}" ${checked ? 'checked' : ''} />
+        ${esc(label)}
+      </label>`;
+  }
+
+  panel.innerHTML = `
+    <div class="field-stack">
+
+      <p class="msg msg-info">
+        Take photos with your device camera app, then check each box when the shot is captured.
+      </p>
+
+      <p class="sub-head">Required (8 shots)</p>
+
+      <div class="checkbox-list">
+        ${chk('f-photo-upstream',           ph.upstream,          '1. Upstream channel view from crossing')}
+        ${chk('f-photo-downstream',         ph.downstream,        '2. Downstream channel view from crossing')}
+        ${chk('f-photo-inlet',              ph.inlet,             '3. Crossing structure — inlet face')}
+        ${chk('f-photo-outlet',             ph.outlet,            '4. Crossing structure — outlet face')}
+        ${chk('f-photo-outlet-drop',        ph.outletDrop,        '5. Outlet drop close-up with tape measure')}
+        ${chk('f-photo-barrel-interior',    ph.barrelInterior,    '6. Barrel interior from inlet end')}
+        ${chk('f-photo-upstream-habitat',   ph.upstreamHabitat,   '7. Upstream habitat — representative reach')}
+        ${chk('f-photo-downstream-habitat', ph.downstreamHabitat, '8. Downstream habitat — representative reach')}
+      </div>
+
+      ${hasAdditional ? `
+        <p class="sub-head">Additional — if applicable</p>
+        <div class="checkbox-list">
+          ${showFishSign ? chk('f-photo-fish-sign', ph.fishSign, 'Fish or fish sign observed') : ''}
+          ${showDamage   ? chk('f-photo-damage',    ph.damage,   'Structural damage or defects') : ''}
+          ${showWetland  ? chk('f-photo-wetland',   ph.wetland,  'Wetland conditions at abutment areas') : ''}
+          ${showSar      ? chk('f-photo-sar',       ph.sar,      'SAR species observed or suspected') : ''}
+        </div>
+      ` : ''}
+
+    </div>
+  `;
+
+  // All 8 required shots drive the section checkmark
+  REQUIRED_PHOTO_KEYS.forEach(key => {
+    const id = `f-photo-${key.replace(/([A-Z])/g, '-$1').toLowerCase()}`;
+    document.getElementById(id)?.addEventListener('change', updateSectionCheckmarks);
+  });
+
+  updateSectionCheckmarks();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // FORM ACTIONS — save, submit, edit, validation
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -1500,6 +1573,28 @@ function collectFormData() {
   if (fWaaRequired)      data.waaRequired             = fWaaRequired.value;
   if (fWetlandNotes)     data.wetlandNotes            = fWetlandNotes.value;
 
+  // Section 6 — Photography Checklist
+  // Preserve existing photo values then overwrite only what's in the DOM
+  data.photos = { ...(currentRecord.photos || {}) };
+  const photoIdMap = {
+    upstream:          'f-photo-upstream',
+    downstream:        'f-photo-downstream',
+    inlet:             'f-photo-inlet',
+    outlet:            'f-photo-outlet',
+    outletDrop:        'f-photo-outlet-drop',
+    barrelInterior:    'f-photo-barrel-interior',
+    upstreamHabitat:   'f-photo-upstream-habitat',
+    downstreamHabitat: 'f-photo-downstream-habitat',
+    fishSign:          'f-photo-fish-sign',
+    damage:            'f-photo-damage',
+    wetland:           'f-photo-wetland',
+    sar:               'f-photo-sar',
+  };
+  Object.entries(photoIdMap).forEach(([key, id]) => {
+    const el = document.getElementById(id);
+    if (el) data.photos[key] = el.checked;
+  });
+
   return data;
 }
 
@@ -1627,6 +1722,19 @@ function updateSectionCheckmarks() {
     const present = fWetlandPresent.checked;
     const waa     = fWaaRequired ? fWaaRequired.value !== '' : false;
     setSectionComplete('wetland', !present || waa);
+  }
+
+  // Section 6 — Photography Checklist (complete when all 8 required shots are checked)
+  const REQUIRED_PHOTO_IDS = [
+    'f-photo-upstream', 'f-photo-downstream',
+    'f-photo-inlet', 'f-photo-outlet',
+    'f-photo-outlet-drop', 'f-photo-barrel-interior',
+    'f-photo-upstream-habitat', 'f-photo-downstream-habitat',
+  ];
+  const firstPhoto = document.getElementById('f-photo-upstream');
+  if (firstPhoto) {
+    setSectionComplete('photos',
+      REQUIRED_PHOTO_IDS.every(id => document.getElementById(id)?.checked));
   }
 }
 

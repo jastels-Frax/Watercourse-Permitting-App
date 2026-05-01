@@ -257,6 +257,7 @@ function renderForm(record) {
   initSectionId(record);
   initSectionWc(record);
   initSectionFish(record);
+  initSectionGeo(record);
   // setFooterState runs last so it can disable inputs added by init functions
   setFooterState(record.status === 'complete' ? 'complete' : 'draft');
 }
@@ -818,6 +819,104 @@ function refreshSubTotal() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// SECTION 3 — Watercourse Geometry and Slope
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function initSectionGeo(record) {
+  const panel = document.querySelector('#section-panels .form-section[data-section="geo"]');
+  if (!panel) return;
+
+  const vm = record.velocityMethod || '';
+
+  function nv(val) { return val != null ? val : ''; }
+
+  panel.innerHTML = `
+    <div class="field-stack">
+
+      <p class="sub-head">Channel Dimensions</p>
+
+      <div class="field-row">
+        <label class="field-label">
+          <span>Bankfull Width (m)</span>
+          <input class="field-input" type="number" id="f-bankfull-width"
+                 step="0.01" min="0" value="${nv(record.bankfullWidth)}" />
+        </label>
+        <label class="field-label">
+          <span>Wetted Width (m)</span>
+          <input class="field-input" type="number" id="f-wetted-width"
+                 step="0.01" min="0" value="${nv(record.wettedWidth)}" />
+        </label>
+      </div>
+
+      <div class="field-row">
+        <label class="field-label">
+          <span>Channel Depth (m)</span>
+          <input class="field-input" type="number" id="f-channel-depth"
+                 step="0.01" min="0" value="${nv(record.channelDepth)}" />
+        </label>
+        <label class="field-label">
+          <span>Bank Height (m)</span>
+          <input class="field-input" type="number" id="f-bank-height"
+                 step="0.01" min="0" value="${nv(record.bankHeight)}" />
+        </label>
+      </div>
+
+      <p class="sub-head">Water Chemistry</p>
+
+      <div class="field-row">
+        <label class="field-label">
+          <span>Dissolved Oxygen (mg/L)</span>
+          <input class="field-input" type="number" id="f-dissolved-oxygen"
+                 step="0.01" min="0" value="${nv(record.dissolvedOxygen)}" />
+        </label>
+        <label class="field-label">
+          <span>DO Saturation (%)</span>
+          <input class="field-input" type="number" id="f-do-saturation"
+                 step="0.1" min="0" max="200" value="${nv(record.doSaturation)}" />
+        </label>
+      </div>
+
+      <label class="field-label">
+        <span>pH (4.0 – 10.0)</span>
+        <input class="field-input" type="number" id="f-ph"
+               step="0.1" min="4" max="10" value="${nv(record.ph)}" />
+      </label>
+
+      <p class="sub-head">Slope and Flow</p>
+
+      <label class="field-label">
+        <span>Watercourse Slope (%)</span>
+        <input class="field-input" type="number" id="f-watercourse-slope"
+               step="0.1" min="0" value="${nv(record.watercourseSlope)}" />
+      </label>
+
+      <div class="field-row">
+        <label class="field-label">
+          <span>Flow Velocity (m/s) — float or meter</span>
+          <input class="field-input" type="number" id="f-flow-velocity"
+                 step="0.01" min="0" value="${nv(record.flowVelocity)}" />
+        </label>
+        <label class="field-label">
+          <span>Velocity Method <span class="req">*</span></span>
+          <select class="field-input" id="f-velocity-method">
+            <option value="">— select —</option>
+            <option value="Float method"  ${vm === 'Float method'  ? 'selected' : ''}>Float method</option>
+            <option value="Flow meter"    ${vm === 'Flow meter'    ? 'selected' : ''}>Flow meter</option>
+            <option value="Not measured"  ${vm === 'Not measured'  ? 'selected' : ''}>Not measured</option>
+          </select>
+        </label>
+      </div>
+
+    </div>
+  `;
+
+  document.getElementById('f-velocity-method')
+    .addEventListener('change', updateSectionCheckmarks);
+
+  updateSectionCheckmarks();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // FORM ACTIONS — save, submit, edit, validation
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -983,6 +1082,23 @@ function collectFormData() {
   if (fFishObsNotes) data.fishObsNotes  = fFishObsNotes.value;
   if (fFishBearing)  data.fishBearing   = fFishBearing.value;
 
+  // Section 3 — Watercourse Geometry and Slope
+  const geoNum = (id) => {
+    const el = document.getElementById(id);
+    return el ? (el.value !== '' ? parseFloat(el.value) : null) : undefined;
+  };
+  const bfw = geoNum('f-bankfull-width');    if (bfw  !== undefined) data.bankfullWidth    = bfw;
+  const wtw = geoNum('f-wetted-width');      if (wtw  !== undefined) data.wettedWidth      = wtw;
+  const chd = geoNum('f-channel-depth');     if (chd  !== undefined) data.channelDepth     = chd;
+  const bkh = geoNum('f-bank-height');       if (bkh  !== undefined) data.bankHeight       = bkh;
+  const dox = geoNum('f-dissolved-oxygen');  if (dox  !== undefined) data.dissolvedOxygen  = dox;
+  const dos = geoNum('f-do-saturation');     if (dos  !== undefined) data.doSaturation     = dos;
+  const ph  = geoNum('f-ph');               if (ph   !== undefined) data.ph               = ph;
+  const slp = geoNum('f-watercourse-slope'); if (slp  !== undefined) data.watercourseSlope = slp;
+  const fv  = geoNum('f-flow-velocity');    if (fv   !== undefined) data.flowVelocity     = fv;
+  const fvm = document.getElementById('f-velocity-method');
+  if (fvm) data.velocityMethod = fvm.value;
+
   return data;
 }
 
@@ -1022,6 +1138,14 @@ function validateForm(record) {
         errors.push({ section: 'fish', fieldId: 'f-sub-total',
           message: `Substrate total is ${total}% — must equal 100%.` });
       }
+    }
+  }
+
+  // Section 3 — Watercourse Geometry and Slope (gated: watercourse confirmed)
+  if (record.watercoursePresent === true) {
+    if (!record.velocityMethod) {
+      errors.push({ section: 'geo', fieldId: 'f-velocity-method',
+        message: 'Velocity measurement method is required.' });
     }
   }
 
@@ -1071,6 +1195,10 @@ function updateSectionCheckmarks() {
   // Section 2 — Fish Habitat Assessment (complete when fish-bearing determination is set)
   const fFishBearing = document.getElementById('f-fish-bearing');
   if (fFishBearing) setSectionComplete('fish', fFishBearing.value !== '');
+
+  // Section 3 — Watercourse Geometry (complete when velocity method is selected)
+  const fVelMethod = document.getElementById('f-velocity-method');
+  if (fVelMethod) setSectionComplete('geo', fVelMethod.value !== '');
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

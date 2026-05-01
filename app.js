@@ -254,9 +254,11 @@ function renderForm(record) {
     .addEventListener('click', () => { clearValidationErrors(); finalizeSubmit(); });
 
   showSection('id');
-  setFooterState(record.status === 'complete' ? 'complete' : 'draft');
   initSectionId(record);
   initSectionWc(record);
+  initSectionFish(record);
+  // setFooterState runs last so it can disable inputs added by init functions
+  setFooterState(record.status === 'complete' ? 'complete' : 'draft');
 }
 
 /**
@@ -555,6 +557,267 @@ function initSectionWc(record) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// SECTION 2 — Fish Habitat Assessment
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function initSectionFish(record) {
+  const panel = document.querySelector('#section-panels .form-section[data-section="fish"]');
+  if (!panel) return;
+
+  const sub = record.substrate || {};
+  const hab = record.hab       || {};
+  const dc  = record.depthContinuity || '';
+  const fc  = record.flowCondition   || '';
+  const fb  = record.fishBearing     || '';
+
+  function sv(key) { return sub[key] != null ? sub[key] : ''; }
+
+  panel.innerHTML = `
+    <div class="field-stack">
+
+      <label class="field-label">
+        <span>Watershed Area (km²)</span>
+        <input class="field-input" type="number" id="f-watershed-area"
+               step="0.01" min="0" value="${record.watershedArea ?? ''}" />
+      </label>
+      <div class="reach-chip" id="f-reach-chip"></div>
+
+      <p class="sub-head">Channel Physical Characteristics</p>
+
+      <label class="field-label">
+        <span>Depth Continuity</span>
+        <select class="field-input" id="f-depth-continuity">
+          <option value="">— select —</option>
+          <option value="Continuous"   ${dc === 'Continuous'   ? 'selected' : ''}>Continuous</option>
+          <option value="Intermittent" ${dc === 'Intermittent' ? 'selected' : ''}>Intermittent</option>
+          <option value="Ephemeral"    ${dc === 'Ephemeral'    ? 'selected' : ''}>Ephemeral</option>
+        </select>
+      </label>
+
+      <div class="toggle-row">
+        <span>Channel Connectivity</span>
+        <label class="toggle-wrap" aria-label="Channel connectivity">
+          <input type="checkbox" id="f-channel-connectivity"
+                 ${record.channelConnectivity ? 'checked' : ''} />
+          <span class="toggle-track" aria-hidden="true"></span>
+        </label>
+      </div>
+
+      <label class="field-label">
+        <span>Flow Condition</span>
+        <select class="field-input" id="f-flow-condition">
+          <option value="">— select —</option>
+          <option value="No flow"       ${fc === 'No flow'       ? 'selected' : ''}>No flow</option>
+          <option value="Low flow"      ${fc === 'Low flow'      ? 'selected' : ''}>Low flow</option>
+          <option value="Moderate flow" ${fc === 'Moderate flow' ? 'selected' : ''}>Moderate flow</option>
+          <option value="High flow"     ${fc === 'High flow'     ? 'selected' : ''}>High flow</option>
+          <option value="Flood"         ${fc === 'Flood'         ? 'selected' : ''}>Flood</option>
+        </select>
+      </label>
+
+      <p class="sub-head">Substrate Composition</p>
+
+      <div class="field-row-4">
+        <label class="field-label"><span>Bedrock %</span>
+          <input class="field-input" type="number" id="f-sub-bedrock"
+                 min="0" max="100" step="1" value="${sv('bedrock')}" /></label>
+        <label class="field-label"><span>Boulder %</span>
+          <input class="field-input" type="number" id="f-sub-boulder"
+                 min="0" max="100" step="1" value="${sv('boulder')}" /></label>
+        <label class="field-label"><span>Cobble %</span>
+          <input class="field-input" type="number" id="f-sub-cobble"
+                 min="0" max="100" step="1" value="${sv('cobble')}" /></label>
+        <label class="field-label"><span>Gravel %</span>
+          <input class="field-input" type="number" id="f-sub-gravel"
+                 min="0" max="100" step="1" value="${sv('gravel')}" /></label>
+        <label class="field-label"><span>Sand %</span>
+          <input class="field-input" type="number" id="f-sub-sand"
+                 min="0" max="100" step="1" value="${sv('sand')}" /></label>
+        <label class="field-label"><span>Silt %</span>
+          <input class="field-input" type="number" id="f-sub-silt"
+                 min="0" max="100" step="1" value="${sv('silt')}" /></label>
+        <label class="field-label"><span>Clay %</span>
+          <input class="field-input" type="number" id="f-sub-clay"
+                 min="0" max="100" step="1" value="${sv('clay')}" /></label>
+        <label class="field-label"><span>Organic %</span>
+          <input class="field-input" type="number" id="f-sub-organic"
+                 min="0" max="100" step="1" value="${sv('organic')}" /></label>
+      </div>
+
+      <div class="sub-total-bar" id="f-sub-total">
+        <span class="sub-total-num" id="sub-total-num">—</span>
+        <span>/ 100%</span>
+      </div>
+
+      <label class="field-label">
+        <span>Substrate Embeddedness (%)</span>
+        <input class="field-input" type="number" id="f-embeddedness"
+               min="0" max="100" step="1" value="${sv('embeddedness')}" />
+      </label>
+
+      <p class="sub-head">Habitat Features</p>
+
+      <div class="checkbox-grid">
+        <label class="checkbox-label">
+          <input type="checkbox" id="f-hab-pools"    ${hab.pools    ? 'checked' : ''} />
+          Pools
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" id="f-hab-riffles"  ${hab.riffles  ? 'checked' : ''} />
+          Riffles
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" id="f-hab-runs"     ${hab.runs     ? 'checked' : ''} />
+          Runs
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" id="f-hab-lwd"      ${hab.lwd      ? 'checked' : ''} />
+          Large woody debris
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" id="f-hab-undercut" ${hab.undercut ? 'checked' : ''} />
+          Undercut banks
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" id="f-hab-overhang" ${hab.overhang ? 'checked' : ''} />
+          Overhanging riparian veg.
+        </label>
+      </div>
+
+      <p class="sub-head">Fish Observations</p>
+
+      <div class="toggle-row">
+        <span>Fish observed</span>
+        <label class="toggle-wrap" aria-label="Fish observed">
+          <input type="checkbox" id="f-fish-observed"
+                 ${record.fishObserved ? 'checked' : ''} />
+          <span class="toggle-track" aria-hidden="true"></span>
+        </label>
+      </div>
+      <div class="toggle-row">
+        <span>Fish sign (carcasses, redds, scales)</span>
+        <label class="toggle-wrap" aria-label="Fish sign observed">
+          <input type="checkbox" id="f-fish-sign"
+                 ${record.fishSign ? 'checked' : ''} />
+          <span class="toggle-track" aria-hidden="true"></span>
+        </label>
+      </div>
+      <div class="toggle-row">
+        <span>Spawning redds observed</span>
+        <label class="toggle-wrap" aria-label="Spawning redds observed">
+          <input type="checkbox" id="f-redds-observed"
+                 ${record.reddsObserved ? 'checked' : ''} />
+          <span class="toggle-track" aria-hidden="true"></span>
+        </label>
+      </div>
+
+      <label class="field-label">
+        <span>Fish observation notes</span>
+        <textarea class="field-input" id="f-fish-obs-notes"
+                  rows="2">${esc(record.fishObsNotes)}</textarea>
+      </label>
+
+      <p class="sub-head">Fish-Bearing Determination</p>
+
+      <label class="field-label">
+        <span>Determination <span class="req">*</span></span>
+        <select class="field-input" id="f-fish-bearing">
+          <option value="">— select —</option>
+          <option value="confirmed"      ${fb === 'confirmed'      ? 'selected' : ''}>Confirmed fish-bearing</option>
+          <option value="likely"         ${fb === 'likely'         ? 'selected' : ''}>Likely fish-bearing</option>
+          <option value="non-unsuitable" ${fb === 'non-unsuitable' ? 'selected' : ''}>Confirmed non-fish-bearing</option>
+          <option value="non-confirmed"  ${fb === 'non-confirmed'  ? 'selected' : ''}>Not confirmed fish-bearing</option>
+          <option value="undetermined"   ${fb === 'undetermined'   ? 'selected' : ''}>Undetermined</option>
+        </select>
+      </label>
+
+    </div>
+  `;
+
+  // Watershed area → reach distance guidance chip
+  document.getElementById('f-watershed-area')
+    .addEventListener('input', updateReachChip);
+  updateReachChip();
+
+  // Substrate inputs → running total
+  const SUB_IDS = [
+    'f-sub-bedrock', 'f-sub-boulder', 'f-sub-cobble', 'f-sub-gravel',
+    'f-sub-sand',    'f-sub-silt',    'f-sub-clay',   'f-sub-organic',
+  ];
+  SUB_IDS.forEach(id =>
+    document.getElementById(id)?.addEventListener('input', refreshSubTotal)
+  );
+  refreshSubTotal();
+
+  // Fish-bearing selection drives the section checkmark
+  document.getElementById('f-fish-bearing')
+    .addEventListener('change', updateSectionCheckmarks);
+
+  updateSectionCheckmarks();
+}
+
+/**
+ * updateReachChip()
+ * Reads #f-watershed-area and writes the appropriate reach distance text
+ * into the #f-reach-chip element.
+ * ≤ 2.5 km² → upstream 30 m / downstream 30 m
+ * >  2.5 km² → upstream 60 m / downstream 100 m
+ */
+function updateReachChip() {
+  const chip = document.getElementById('f-reach-chip');
+  const wa   = document.getElementById('f-watershed-area');
+  if (!chip || !wa) return;
+  if (wa.value === '') {
+    chip.textContent = 'Enter watershed area for reach distance guidance.';
+    return;
+  }
+  const area = parseFloat(wa.value);
+  if (isNaN(area) || area < 0) {
+    chip.textContent = 'Enter a valid watershed area.';
+    return;
+  }
+  if (area <= 2.5) {
+    chip.textContent = '≤ 2.5 km² — Upstream reach: 30 m · Downstream reach: 30 m';
+  } else {
+    chip.textContent = '> 2.5 km² — Upstream reach: 60 m · Downstream reach: 100 m';
+  }
+}
+
+/**
+ * refreshSubTotal()
+ * Reads the eight substrate percentage inputs and updates the #f-sub-total bar.
+ * Adds class .ok when total === 100, .over otherwise (when any value is filled).
+ */
+function refreshSubTotal() {
+  const SUB_IDS = [
+    'f-sub-bedrock', 'f-sub-boulder', 'f-sub-cobble', 'f-sub-gravel',
+    'f-sub-sand',    'f-sub-silt',    'f-sub-clay',   'f-sub-organic',
+  ];
+  let total     = 0;
+  let anyFilled = false;
+  SUB_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el.value !== '') {
+      anyFilled = true;
+      total    += parseFloat(el.value) || 0;
+    }
+  });
+
+  const bar     = document.getElementById('f-sub-total');
+  const numSpan = document.getElementById('sub-total-num');
+  if (!bar || !numSpan) return;
+
+  if (!anyFilled) {
+    numSpan.textContent = '—';
+    bar.classList.remove('ok', 'over');
+    return;
+  }
+  numSpan.textContent = `${total}%`;
+  bar.classList.toggle('ok',   total === 100);
+  bar.classList.toggle('over', total !== 100);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // FORM ACTIONS — save, submit, edit, validation
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -679,6 +942,47 @@ function collectFormData() {
                             : null;
   }
 
+  // Section 2 — Fish Habitat Assessment
+  const fWatershedArea = document.getElementById('f-watershed-area');
+  if (fWatershedArea) {
+    data.watershedArea = fWatershedArea.value !== '' ? parseFloat(fWatershedArea.value) : null;
+  }
+
+  const fDepthCont = document.getElementById('f-depth-continuity');
+  const fChanConn  = document.getElementById('f-channel-connectivity');
+  const fFlowCond  = document.getElementById('f-flow-condition');
+  if (fDepthCont) data.depthContinuity     = fDepthCont.value;
+  if (fChanConn)  data.channelConnectivity = fChanConn.checked;
+  if (fFlowCond)  data.flowCondition       = fFlowCond.value;
+
+  // Substrate — clone nested object then overwrite individual keys
+  data.substrate = { ...(currentRecord.substrate || {}) };
+  const SUB_KEYS = ['bedrock','boulder','cobble','gravel','sand','silt','clay','organic'];
+  SUB_KEYS.forEach(key => {
+    const el = document.getElementById(`f-sub-${key}`);
+    if (el) data.substrate[key] = el.value !== '' ? parseFloat(el.value) : null;
+  });
+  const fEmbed = document.getElementById('f-embeddedness');
+  if (fEmbed) data.substrate.embeddedness = fEmbed.value !== '' ? parseFloat(fEmbed.value) : null;
+
+  // Habitat features — clone nested object then overwrite
+  data.hab = { ...(currentRecord.hab || {}) };
+  ['pools','riffles','runs','lwd','undercut','overhang'].forEach(key => {
+    const el = document.getElementById(`f-hab-${key}`);
+    if (el) data.hab[key] = el.checked;
+  });
+
+  const fFishObs      = document.getElementById('f-fish-observed');
+  const fFishSign     = document.getElementById('f-fish-sign');
+  const fRedds        = document.getElementById('f-redds-observed');
+  const fFishObsNotes = document.getElementById('f-fish-obs-notes');
+  const fFishBearing  = document.getElementById('f-fish-bearing');
+  if (fFishObs)      data.fishObserved  = fFishObs.checked;
+  if (fFishSign)     data.fishSign      = fFishSign.checked;
+  if (fRedds)        data.reddsObserved = fRedds.checked;
+  if (fFishObsNotes) data.fishObsNotes  = fFishObsNotes.value;
+  if (fFishBearing)  data.fishBearing   = fFishBearing.value;
+
   return data;
 }
 
@@ -700,6 +1004,25 @@ function validateForm(record) {
   // Section 1 — Watercourse Confirmation
   if (record.watercoursePresent === null || record.watercoursePresent === undefined) {
     errors.push({ section: 'wc', fieldId: 'f-wc-present', message: 'Watercourse confirmation is required.' });
+  }
+
+  // Section 2 — Fish Habitat Assessment (only relevant when watercourse is confirmed)
+  if (record.watercoursePresent === true) {
+    if (!record.fishBearing) {
+      errors.push({ section: 'fish', fieldId: 'f-fish-bearing',
+        message: 'Fish-bearing determination is required.' });
+    }
+    // Substrate total must equal 100 if any value was entered
+    const sub     = record.substrate || {};
+    const SUB_KEYS = ['bedrock','boulder','cobble','gravel','sand','silt','clay','organic'];
+    const filled  = SUB_KEYS.map(k => sub[k]).filter(v => v != null);
+    if (filled.length > 0) {
+      const total = filled.reduce((a, b) => a + b, 0);
+      if (total !== 100) {
+        errors.push({ section: 'fish', fieldId: 'f-sub-total',
+          message: `Substrate total is ${total}% — must equal 100%.` });
+      }
+    }
   }
 
   return errors;
@@ -744,6 +1067,10 @@ function updateSectionCheckmarks() {
   // Section 1 — Watercourse Confirmation
   const fWcPresent = document.getElementById('f-wc-present');
   setSectionComplete('wc', fWcPresent?.value !== '');
+
+  // Section 2 — Fish Habitat Assessment (complete when fish-bearing determination is set)
+  const fFishBearing = document.getElementById('f-fish-bearing');
+  if (fFishBearing) setSectionComplete('fish', fFishBearing.value !== '');
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

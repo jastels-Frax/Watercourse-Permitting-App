@@ -67,6 +67,9 @@ const modalUnsaved    = document.getElementById('modal-unsaved');
 const btnModalDraft   = document.getElementById('btn-modal-draft');
 const btnModalDiscard = document.getElementById('btn-modal-discard');
 const btnModalCancel  = document.getElementById('btn-modal-cancel');
+const modalConfirm     = document.getElementById('modal-confirm');
+const btnConfirmOk     = document.getElementById('btn-confirm-ok');
+const btnConfirmCancel = document.getElementById('btn-confirm-cancel');
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // BOOT
@@ -2045,6 +2048,9 @@ function renderList() {
       <div class="list-export">
         <button class="btn btn-ghost" id="btn-export-csv"     type="button">CSV</button>
         <button class="btn btn-ghost" id="btn-export-geojson" type="button">GeoJSON</button>
+        ${records.length > 0
+          ? '<button class="btn btn-danger-ghost" id="btn-clear-all" type="button">Clear All</button>'
+          : ''}
       </div>
     </div>
 
@@ -2068,12 +2074,44 @@ function renderList() {
   document.getElementById('btn-export-geojson')
     .addEventListener('click', exportGeoJSON);
 
-  // Tap card to open record; tap export button to download single GeoJSON
+  if (records.length > 0) {
+    document.getElementById('btn-clear-all').addEventListener('click', () => {
+      openConfirmModal(
+        `Delete all ${records.length} record${records.length === 1 ? '' : 's'}? This cannot be undone.`,
+        () => {
+          CA.loadRecords().forEach(r => CA.deleteRecord(r.id));
+          renderList();
+          toast('All records deleted', 'warn');
+        }
+      );
+    });
+  }
+
+  // Tap a per-record action button or the card itself
   document.getElementById('record-list')
     .addEventListener('click', e => {
-      // Export button is a sibling of record-card — check it first
+      const csvBtn = e.target.closest('[data-csv-id]');
+      if (csvBtn) {
+        e.stopPropagation();
+        const rec = CA.getRecord(csvBtn.dataset.csvId);
+        if (rec) exportSingleCSV(rec);
+        return;
+      }
+      const deleteBtn = e.target.closest('[data-delete-id]');
+      if (deleteBtn) {
+        e.stopPropagation();
+        const id  = deleteBtn.dataset.deleteId;
+        const rec = CA.getRecord(id);
+        const cid = rec?.crossingId || id;
+        openConfirmModal(
+          `Delete ${cid}? This cannot be undone.`,
+          () => { CA.deleteRecord(id); renderList(); }
+        );
+        return;
+      }
       const exportBtn = e.target.closest('[data-export-id]');
       if (exportBtn) {
+        e.stopPropagation();
         const rec = CA.getRecord(exportBtn.dataset.exportId);
         if (rec) exportSingleGeoJSON(rec);
         return;
@@ -2114,9 +2152,17 @@ function renderRecordCard(r) {
           ${r.watershed ? `<span class="rc-dot"></span><span>${esc(r.watershed)}</span>` : ''}
         </div>
       </button>
+      <button class="rc-csv-btn" data-csv-id="${esc(r.id)}" type="button"
+              aria-label="Export ${esc(r.crossingId)} as CSV">
+        CSV
+      </button>
       <button class="rc-export-btn" data-export-id="${esc(r.id)}" type="button"
               aria-label="Export ${esc(r.crossingId)} as GeoJSON">
         ↓ GeoJSON
+      </button>
+      <button class="rc-delete-btn" data-delete-id="${esc(r.id)}" type="button"
+              aria-label="Delete ${esc(r.crossingId)}">
+        ✕
       </button>
     </div>
   `;
@@ -2246,6 +2292,32 @@ function exportSingleGeoJSON(record) {
   toast(`GeoJSON exported — ${record.crossingId}`, 'success');
 }
 
+/**
+ * exportSingleCSV(record)
+ * Exports one record as a single-row CSV using the same column structure
+ * as the bulk export. Filename: <crossingId>_<date>.csv
+ */
+function exportSingleCSV(record) {
+  const row     = CA.serializeRecord(record);
+  const headers = Object.keys(row);
+  function csvCell(v) {
+    if (v === null || v === undefined) return '';
+    const s = String(v);
+    return (s.includes(',') || s.includes('"') || s.includes('\r') || s.includes('\n'))
+      ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }
+  const csv = [
+    headers.join(','),
+    headers.map(h => csvCell(row[h])).join(','),
+  ].join('\r\n');
+  const safeId = (record.crossingId || 'crossing').replace(/[^A-Za-z0-9_-]/g, '_');
+  triggerDownload(
+    new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' }),
+    `${safeId}_${dateFilename()}.csv`
+  );
+  toast(`CSV exported — ${record.crossingId}`, 'success');
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // UNSAVED-CHANGES MODAL
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -2273,6 +2345,28 @@ function openUnsavedModal(onSaveDraft, onDiscard) {
   // Clicking the backdrop also dismisses (Keep Editing behaviour)
   modalUnsaved.addEventListener('click', e => {
     if (e.target === modalUnsaved) dismiss();
+  }, { once: true });
+}
+
+/**
+ * openConfirmModal(message, onConfirm)
+ * Generic two-button (Confirm / Cancel) confirmation modal.
+ * Used by per-record delete and Clear All.
+ */
+function openConfirmModal(message, onConfirm) {
+  document.getElementById('modal-confirm-msg').textContent = message;
+  modalConfirm.removeAttribute('hidden');
+
+  function dismiss() {
+    modalConfirm.setAttribute('hidden', '');
+    btnConfirmOk.onclick     = null;
+    btnConfirmCancel.onclick = null;
+  }
+
+  btnConfirmOk.onclick     = () => { dismiss(); onConfirm(); };
+  btnConfirmCancel.onclick = dismiss;
+  modalConfirm.addEventListener('click', e => {
+    if (e.target === modalConfirm) dismiss();
   }, { once: true });
 }
 

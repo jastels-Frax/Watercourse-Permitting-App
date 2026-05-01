@@ -196,6 +196,13 @@ button { font-family: inherit; }
 }
 .btn-ghost:hover { background: var(--clr-surface2); }
 
+.btn-danger-ghost {
+  background: transparent;
+  color: var(--clr-danger);
+  border: 1.5px solid var(--clr-danger);
+}
+.btn-danger-ghost:hover { background: var(--clr-danger-dim); }
+
 .btn-sm    { min-height: 36px; font-size: var(--text-xs); padding: 0 var(--sp-md); }
 .btn-lg    { min-height: 52px; font-size: var(--text-base); padding: 0 1.75rem; border-radius: var(--radius); }
 .btn-block { width: 100%; }
@@ -786,8 +793,10 @@ input[type="time"] { color-scheme: dark; }
 }
 .record-card-row > .record-card { flex: 1; min-width: 0; }
 
-/* Per-record GeoJSON export button */
-.rc-export-btn {
+/* Per-record action buttons (GeoJSON export, CSV export, delete) */
+.rc-export-btn,
+.rc-csv-btn,
+.rc-delete-btn {
   flex-shrink: 0;
   align-self: stretch;
   min-height: 0;
@@ -795,7 +804,6 @@ input[type="time"] { color-scheme: dark; }
   background: transparent;
   border: 1.5px solid var(--clr-border);
   border-radius: var(--radius-sm);
-  color: var(--clr-info);
   font-family: inherit;
   font-size: var(--text-xs);
   font-weight: 700;
@@ -804,8 +812,18 @@ input[type="time"] { color-scheme: dark; }
   transition: background 0.15s, border-color 0.15s;
   -webkit-tap-highlight-color: transparent;
 }
+.rc-export-btn { color: var(--clr-info); }
 .rc-export-btn:hover  { background: var(--clr-info-dim); border-color: var(--clr-info); }
-.rc-export-btn:active { transform: scale(0.97); }
+
+.rc-csv-btn { color: var(--clr-accent); }
+.rc-csv-btn:hover  { background: var(--clr-accent-dim); border-color: var(--clr-accent); }
+
+.rc-delete-btn { color: var(--clr-danger); }
+.rc-delete-btn:hover  { background: var(--clr-danger-dim); border-color: var(--clr-danger); }
+
+.rc-export-btn:active,
+.rc-csv-btn:active,
+.rc-delete-btn:active { transform: scale(0.97); }
 
 .record-card {
   background: var(--clr-surface);

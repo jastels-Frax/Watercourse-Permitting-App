@@ -89,6 +89,7 @@
 
     // ── Section 4: Existing Crossing Condition ────────────────────────────────
     crossingPresent:       false,
+    crossingStatus:        '',    // Existing – assess only | Existing – replacement proposed | New installation
     structureType:         '',   // Culvert – round | Culvert – pipe arch |
                                  //   Culvert – box | Bridge | Ford/causeway |
                                  //   Open bottom arch | Unknown | Other
@@ -105,7 +106,7 @@
     fishPassageRating:     '',   // P | PB | FB
 
     // ── Section 5: Wetland Assessment ─────────────────────────────────────────
-    wetlandPresent:         false,
+    wetlandPresent:         null,   // null = not yet answered; false = explicitly No; true = Yes
     wetlandConfirmed:       false,
     wetlandType:            '',   // Bog | Fen | Marsh | Swamp |
                                   //   Shallow open water | Unknown
@@ -359,6 +360,7 @@
 
       // ── Section 4 ─────────────────────────────────────────────────────────────
       crossing_present:        r.crossingPresent,
+      crossing_status:         r.crossingStatus,
       structure_type:          r.structureType,
       structure_material:      r.structureMaterial,
       num_barrels:             r.numBarrels,

@@ -815,7 +815,7 @@ function refreshSubTotal() {
   if (!bar || !numSpan) return;
 
   if (!anyFilled) {
-    numSpan.textContent = '—';
+    numSpan.textContent = '0%';
     bar.classList.remove('ok', 'over');
     return;
   }
@@ -936,6 +936,7 @@ function initSectionCrossing(record) {
   const panel = document.querySelector('#section-panels .form-section[data-section="crossing"]');
   if (!panel) return;
 
+  const cs  = record.crossingStatus    || '';
   const st  = record.structureType     || '';
   const sm  = record.structureMaterial || '';
   const bc  = record.barrelCondition   || '';
@@ -958,6 +959,16 @@ function initSectionCrossing(record) {
 
       <div id="crossing-detail"${!record.crossingPresent ? ' hidden' : ''}>
         <div class="field-stack">
+
+          <label class="field-label">
+            <span>Crossing Status</span>
+            <select class="field-input" id="f-crossing-status">
+              <option value="">— select —</option>
+              <option value="Existing – assess only"          ${cs === 'Existing – assess only'          ? 'selected' : ''}>Existing – assess only</option>
+              <option value="Existing – replacement proposed" ${cs === 'Existing – replacement proposed' ? 'selected' : ''}>Existing – replacement proposed</option>
+              <option value="New installation"               ${cs === 'New installation'               ? 'selected' : ''}>New installation</option>
+            </select>
+          </label>
 
           <label class="field-label">
             <span>Structure Type</span>
@@ -1046,21 +1057,21 @@ function initSectionCrossing(record) {
                       rows="2">${esc(record.structuralDamageNotes)}</textarea>
           </label>
 
+          <p class="sub-head">Fish Passage Rating</p>
+
+          <label class="field-label">
+            <span>Rating <span class="req">*</span></span>
+            <select class="field-input" id="f-fish-passage-rating">
+              <option value="">— select —</option>
+              <option value="P"  ${fpr === 'P'  ? 'selected' : ''}>P — Passable</option>
+              <option value="PB" ${fpr === 'PB' ? 'selected' : ''}>PB — Partial Barrier</option>
+              <option value="FB" ${fpr === 'FB' ? 'selected' : ''}>FB — Full Barrier</option>
+            </select>
+          </label>
+          <p class="passage-hint" id="fp-helper" hidden></p>
+
         </div>
       </div>
-
-      <p class="sub-head">Fish Passage Rating</p>
-
-      <label class="field-label">
-        <span>Rating <span class="req">*</span></span>
-        <select class="field-input" id="f-fish-passage-rating">
-          <option value="">— select —</option>
-          <option value="P"  ${fpr === 'P'  ? 'selected' : ''}>P — Passable</option>
-          <option value="PB" ${fpr === 'PB' ? 'selected' : ''}>PB — Partial Barrier</option>
-          <option value="FB" ${fpr === 'FB' ? 'selected' : ''}>FB — Full Barrier</option>
-        </select>
-      </label>
-      <p class="passage-hint" id="fp-helper" hidden></p>
 
     </div>
   `;
@@ -1069,6 +1080,8 @@ function initSectionCrossing(record) {
     document.getElementById('crossing-detail').hidden = !e.target.checked;
     updateSectionCheckmarks();
   });
+
+  document.getElementById('f-crossing-status').addEventListener('change', updateSectionCheckmarks);
 
   document.getElementById('f-outlet-drop').addEventListener('input', refreshOutletWarn);
   refreshOutletWarn();
@@ -1144,7 +1157,8 @@ function initSectionWetland(record) {
         <span>Wetland interaction present</span>
         <label class="toggle-wrap" aria-label="Wetland interaction present">
           <input type="checkbox" id="f-wetland-present"
-                 ${record.wetlandPresent ? 'checked' : ''} />
+                 ${record.wetlandPresent ? 'checked' : ''}
+                 data-touched="${record.wetlandPresent !== null ? 'true' : 'false'}" />
           <span class="toggle-track" aria-hidden="true"></span>
         </label>
       </div>
@@ -1257,6 +1271,7 @@ function initSectionWetland(record) {
   `;
 
   document.getElementById('f-wetland-present').addEventListener('change', e => {
+    e.target.dataset.touched = 'true';
     document.getElementById('wetland-detail').hidden = !e.target.checked;
     updateSectionCheckmarks();
   });
@@ -1375,11 +1390,16 @@ function computePermitSuggestions(record) {
   const wc  = record.watercoursePresent;
   const sar = record.sarPolygon;
   const cp  = record.crossingPresent;
+  const cs  = record.crossingStatus || '';
   const war = record.waaRequired;
+  const od  = record.outletDrop;
 
-  const fishConfirmed = fb === 'confirmed' || fb === 'likely';
-  const fishNone      = fb === 'non-unsuitable';
-  const waaYes        = war === 'yes-road' || war === 'yes-excavation';
+  const fishConfirmed  = fb === 'confirmed' || fb === 'likely';
+  const fishNone       = fb === 'non-unsuitable';
+  const waaYes         = war === 'yes-road' || war === 'yes-excavation';
+  const outletBarrier  = od != null && od > 0.15;
+  const assessOnly     = cs === 'Existing – assess only';
+  const replacement    = cs === 'Existing – replacement proposed';
 
   // ── DFO ──────────────────────────────────────────────────────────────────────
   let dfoVal, dfoHint;
@@ -1387,11 +1407,17 @@ function computePermitSuggestions(record) {
   if (wc === false) {
     dfoVal  = 'none';
     dfoHint = 'No DFO submission — no watercourse confirmed at this location.';
+  } else if (wc === true && sar) {
+    dfoVal  = 'rfr-sara';
+    dfoHint = 'SAR polygon flagged — Request for Review plus SARA s.73 authorization required.';
+  } else if (wc === true && outletBarrier) {
+    dfoVal  = 'rfr';
+    dfoHint = 'Outlet drop exceeds 0.15 m — potential serious harm to fish under Fisheries Act s.35. Request for Review required regardless of fish-bearing status.';
   } else if (wc === true && fishConfirmed) {
-    if (sar) {
-      dfoVal  = 'rfr-sara';
-      dfoHint = 'SAR polygon flagged — Request for Review plus SARA s.73 authorization required.';
-    } else if (cp) {
+    if (assessOnly) {
+      dfoVal  = 'none';
+      dfoHint = 'Assessment only — no physical works proposed at this crossing.';
+    } else if (replacement || (!cs && cp)) {
       dfoVal  = 'rfr';
       dfoHint = 'Replacing an existing crossing in a fish-bearing watercourse — Request for Review required.';
     } else {
@@ -1418,18 +1444,24 @@ function computePermitSuggestions(record) {
   } else if (wc === true && fishConfirmed) {
     if (waaYes) {
       nseccVal  = 'waa-wetland';
-      nseccHint = 'Fish-bearing watercourse — Approval (s.109) required. Wetland Alteration Approval (WAA) also required.';
+      nseccHint = 'Fish-bearing watercourse with WAA component — Approval (s.109) plus Wetland Alteration Approval required.';
+    } else if (assessOnly) {
+      nseccVal  = 'notification';
+      nseccHint = 'Assessment only — no physical works planned. NSECC Notification may suffice where no WAA is required.';
     } else {
       nseccVal  = 'approval';
-      nseccHint = 'Fish-bearing watercourse crossing — Approval under NS Environment Act s.109 required.';
+      nseccHint = 'Permanent crossing works in a fish-bearing watercourse — Approval under NS Environment Act s.109 required.';
     }
   } else if (wc === true && fishNone) {
     if (waaYes) {
       nseccVal  = 'waa-wetland';
       nseccHint = 'Non-fish-bearing watercourse — no s.109 Approval required. Wetland Alteration Approval (WAA) required.';
-    } else {
+    } else if (assessOnly) {
       nseccVal  = 'none';
-      nseccHint = 'Confirmed non-fish-bearing watercourse — no NSECC submission required.';
+      nseccHint = 'Assessment only — non-fish-bearing watercourse, no WAA required. No NSECC submission needed.';
+    } else {
+      nseccVal  = 'notification';
+      nseccHint = 'Non-fish-bearing watercourse — low-risk activity, no WAA required. NSECC Notification may be sufficient.';
     }
   } else if (wc === true && (fb === 'non-confirmed' || fb === 'undetermined')) {
     nseccVal  = 'tbd';
@@ -1709,6 +1741,7 @@ function collectFormData() {
 
   // Section 4 — Existing Crossing Condition
   const fCrossingPresent   = document.getElementById('f-crossing-present');
+  const fCrossingStatus    = document.getElementById('f-crossing-status');
   const fStructureType     = document.getElementById('f-structure-type');
   const fStructureMat      = document.getElementById('f-structure-material');
   const fBarrelCond        = document.getElementById('f-barrel-condition');
@@ -1718,6 +1751,7 @@ function collectFormData() {
   const fFishPassageRating = document.getElementById('f-fish-passage-rating');
 
   if (fCrossingPresent)   data.crossingPresent      = fCrossingPresent.checked;
+  if (fCrossingStatus)    data.crossingStatus        = fCrossingStatus.value;
   if (fStructureType)     data.structureType        = fStructureType.value;
   if (fStructureMat)      data.structureMaterial    = fStructureMat.value;
   if (fBarrelCond)        data.barrelCondition      = fBarrelCond.value;
@@ -1917,13 +1951,14 @@ function updateSectionCheckmarks() {
   if (fFishPassageRating) setSectionComplete('crossing', fFishPassageRating.value !== '');
 
   // Section 5 — Wetland Assessment
-  // Complete when: no wetland present (explicit No), OR wetland present and WAA determination made
+  // Complete when: toggle has been explicitly set (touched), AND (no wetland OR WAA determined)
   const fWetlandPresent = document.getElementById('f-wetland-present');
   const fWaaRequired    = document.getElementById('f-waa-required');
   if (fWetlandPresent) {
+    const touched = fWetlandPresent.dataset.touched === 'true';
     const present = fWetlandPresent.checked;
     const waa     = fWaaRequired ? fWaaRequired.value !== '' : false;
-    setSectionComplete('wetland', !present || waa);
+    setSectionComplete('wetland', touched && (!present || waa));
   }
 
   // Section 6 — Photography Checklist (complete when all 8 required shots are checked)

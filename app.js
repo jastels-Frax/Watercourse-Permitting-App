@@ -1190,7 +1190,7 @@ function updateSectionCheckmarks() {
 
   // Section 1 — Watercourse Confirmation
   const fWcPresent = document.getElementById('f-wc-present');
-  setSectionComplete('wc', fWcPresent?.value !== '');
+  if (fWcPresent) setSectionComplete('wc', fWcPresent.value !== '');
 
   // Section 2 — Fish Habitat Assessment (complete when fish-bearing determination is set)
   const fFishBearing = document.getElementById('f-fish-bearing');

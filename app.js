@@ -1272,16 +1272,77 @@ function initSectionWetland(record) {
             </label>
           </div>
 
-          <div class="toggle-row">
-            <span>Hydrological indicators
-              <span class="toggle-hint">water staining, drift lines, watermarks</span>
-            </span>
-            <label class="toggle-wrap" aria-label="Hydrological indicators present">
-              <input type="checkbox" id="f-hydrological-indicators"
-                     ${record.hydrologicalIndicators ? 'checked' : ''} />
-              <span class="toggle-track" aria-hidden="true"></span>
+          <p class="sub-head">Hydrological Indicators</p>
+
+          <p class="field-group-label">Primary — strong evidence</p>
+          <div class="checkbox-list">
+            <label class="checkbox-label">
+              <input type="checkbox" id="f-hydro-water-marks"
+                     ${record.hydroWaterMarks ? 'checked' : ''} />
+              Water marks (staining on vegetation or structures)
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="f-hydro-drift-lines"
+                     ${record.hydroDriftLines ? 'checked' : ''} />
+              Drift lines (debris deposited by flowing water)
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="f-hydro-waterlogged-soil"
+                     ${record.hydroWaterloggedSoil ? 'checked' : ''} />
+              Waterlogged soil (saturation within 30 cm of surface)
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="f-hydro-standing-water"
+                     ${record.hydroStandingWater ? 'checked' : ''} />
+              Standing or flowing water observed
             </label>
           </div>
+
+          <p class="field-group-label">Secondary — supporting evidence</p>
+          <div class="checkbox-list">
+            <label class="checkbox-label">
+              <input type="checkbox" id="f-hydro-water-stained-leaves"
+                     ${record.hydroWaterStainedLeaves ? 'checked' : ''} />
+              Water-stained leaves
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="f-hydro-oxidized-rhizospheres"
+                     ${record.hydroOxidizedRhizospheres ? 'checked' : ''} />
+              Oxidized rhizospheres (rust-coloured root channels in soil profile)
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="f-hydro-sediment-deposits"
+                     ${record.hydroSedimentDeposits ? 'checked' : ''} />
+              Sediment deposits on vegetation
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="f-hydro-algal-mats"
+                     ${record.hydroAlgalMats ? 'checked' : ''} />
+              Algal mats or crusts
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="f-hydro-iron-deposits"
+                     ${record.hydroIronDeposits ? 'checked' : ''} />
+              Iron deposits or seeps
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="f-hydro-drainage-patterns"
+                     ${record.hydroDrainagePatterns ? 'checked' : ''} />
+              Surface drainage patterns or flow channels
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="f-hydro-buttressed-roots"
+                     ${record.hydroButtressedRoots ? 'checked' : ''} />
+              Buttressed tree bases or adventitious roots
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="f-hydro-moss-lines"
+                     ${record.hydroMossLines ? 'checked' : ''} />
+              Moss lines on trees or stumps
+            </label>
+          </div>
+
+          <p class="hydro-summary" id="hydro-indicator-summary"></p>
 
           <label class="field-label">
             <span>Dominant Vegetation Community</span>
@@ -1322,6 +1383,32 @@ function initSectionWetland(record) {
 
   document.getElementById('f-waa-required')
     .addEventListener('change', updateSectionCheckmarks);
+
+  const PRIMARY_HYDRO_IDS = [
+    'f-hydro-water-marks', 'f-hydro-drift-lines',
+    'f-hydro-waterlogged-soil', 'f-hydro-standing-water',
+  ];
+  const SECONDARY_HYDRO_IDS = [
+    'f-hydro-water-stained-leaves', 'f-hydro-oxidized-rhizospheres',
+    'f-hydro-sediment-deposits', 'f-hydro-algal-mats',
+    'f-hydro-iron-deposits', 'f-hydro-drainage-patterns',
+    'f-hydro-buttressed-roots', 'f-hydro-moss-lines',
+  ];
+  const ALL_HYDRO_IDS = [...PRIMARY_HYDRO_IDS, ...SECONDARY_HYDRO_IDS];
+
+  function refreshHydroSummary() {
+    const summary = document.getElementById('hydro-indicator-summary');
+    if (!summary) return;
+    const primary   = PRIMARY_HYDRO_IDS.filter(id => document.getElementById(id)?.checked).length;
+    const secondary = SECONDARY_HYDRO_IDS.filter(id => document.getElementById(id)?.checked).length;
+    const total     = primary + secondary;
+    summary.textContent = `${total} of 12 indicator${total === 1 ? '' : 's'} present (${primary} primary, ${secondary} secondary)`;
+  }
+
+  ALL_HYDRO_IDS.forEach(id => {
+    document.getElementById(id)?.addEventListener('change', refreshHydroSummary);
+  });
+  refreshHydroSummary();
 
   updateSectionCheckmarks();
 }
@@ -1824,7 +1911,6 @@ function collectFormData() {
   const fWetlandConn      = document.getElementById('f-wetland-connectivity');
   const fHydrophilicVeg   = document.getElementById('f-hydrophilic-veg');
   const fHydricSoils      = document.getElementById('f-hydric-soils');
-  const fHydroIndicators  = document.getElementById('f-hydrological-indicators');
   const fDominantVeg      = document.getElementById('f-dominant-veg');
   const fWaaRequired      = document.getElementById('f-waa-required');
   const fWetlandNotes     = document.getElementById('f-wetland-notes');
@@ -1836,7 +1922,26 @@ function collectFormData() {
   if (fWetlandConn)      data.wetlandConnectivity     = fWetlandConn.value;
   if (fHydrophilicVeg)   data.hydrophilicVeg          = fHydrophilicVeg.checked;
   if (fHydricSoils)      data.hydricSoils             = fHydricSoils.checked;
-  if (fHydroIndicators)  data.hydrologicalIndicators  = fHydroIndicators.checked;
+
+  const hydroFieldMap = {
+    hydroWaterMarks:           'f-hydro-water-marks',
+    hydroDriftLines:           'f-hydro-drift-lines',
+    hydroWaterloggedSoil:      'f-hydro-waterlogged-soil',
+    hydroStandingWater:        'f-hydro-standing-water',
+    hydroWaterStainedLeaves:   'f-hydro-water-stained-leaves',
+    hydroOxidizedRhizospheres: 'f-hydro-oxidized-rhizospheres',
+    hydroSedimentDeposits:     'f-hydro-sediment-deposits',
+    hydroAlgalMats:            'f-hydro-algal-mats',
+    hydroIronDeposits:         'f-hydro-iron-deposits',
+    hydroDrainagePatterns:     'f-hydro-drainage-patterns',
+    hydroButtressedRoots:      'f-hydro-buttressed-roots',
+    hydroMossLines:            'f-hydro-moss-lines',
+  };
+  Object.entries(hydroFieldMap).forEach(([key, id]) => {
+    const el = document.getElementById(id);
+    if (el) data[key] = el.checked;
+  });
+
   if (fDominantVeg)      data.dominantVeg             = fDominantVeg.value;
   if (fWaaRequired)      data.waaRequired             = fWaaRequired.value;
   if (fWetlandNotes)     data.wetlandNotes            = fWetlandNotes.value;

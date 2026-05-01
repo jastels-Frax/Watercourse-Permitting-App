@@ -315,7 +315,9 @@ function setSectionComplete(sectionId, bool) {
  * If the user is currently on a now-hidden tab they are redirected to 'wc'.
  */
 function applyWatercourseFilter(present) {
-  const show = present === true;
+  // Only hide gated tabs when user has explicitly answered No (false).
+  // null (unanswered) leaves all 8 tabs visible.
+  const show = present !== false;
   WC_GATED.forEach(id => {
     const tab = document.querySelector(`#section-nav .nav-tab[data-section="${id}"]`);
     if (tab) tab.hidden = !show;

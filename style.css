@@ -84,6 +84,9 @@ body {
 }
 img, svg { display: block; max-width: 100%; }
 button { font-family: inherit; }
+/* Author display rules (e.g. display:flex) outrank the UA stylesheet's
+   [hidden]{display:none}, so we re-assert it with !important here. */
+[hidden] { display: none !important; }
 
 /* ── App header ─────────────────────────────────────────────────────────────── */
 .app-header {
@@ -556,7 +559,6 @@ input[type="time"] { color-scheme: dark; }
   justify-content: center;
   padding: var(--sp-md);
 }
-.modal-backdrop[hidden] { display: none; }
 
 .modal-card {
   background: var(--clr-surface);
@@ -689,9 +691,6 @@ input[type="time"] { color-scheme: dark; }
   transition: opacity 0.15s;
 }
 .nav-tab.done .nav-check { opacity: 1; }
-
-/* Explicitly override inline-flex when the hidden attribute is set on a tab */
-.nav-tab[hidden] { display: none !important; }
 
 /* ── Form section panels (show-exclusively — one visible at a time) ─────────── */
 .form-section {

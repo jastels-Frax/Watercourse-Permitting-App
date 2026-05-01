@@ -994,9 +994,10 @@ select.fp-barrier { border-color: var(--clr-danger)  !important; color: var(--cl
   display: grid;
   gap: 10px;
 }
-.ps-row    { display: flex; flex-direction: column; gap: 3px; }
-.ps-label  { font-size: var(--text-xs); font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--clr-text-2); }
-.ps-value  { font-size: var(--text-sm); font-weight: 700; color: var(--clr-accent); }
+.ps-row       { display: flex; flex-direction: column; gap: 3px; }
+.ps-label     { font-size: var(--text-xs); font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--clr-text-2); }
+.ps-value     { font-size: var(--text-sm); font-weight: 700; color: var(--clr-accent); }
+.ps-rationale { font-size: var(--text-sm); font-weight: 500; color: var(--clr-text-2); line-height: 1.5; }
 
 /* ── Reach guidance chip ────────────────────────────────────────────────────── */
 .reach-chip {

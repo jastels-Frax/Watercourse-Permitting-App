@@ -261,6 +261,7 @@ function renderForm(record) {
   initSectionCrossing(record);
   initSectionWetland(record);
   initSectionPhotos(record);
+  initSectionPermits(record);
   // setFooterState runs last so it can disable inputs added by init functions
   setFooterState(record.status === 'complete' ? 'complete' : 'draft');
 }
@@ -1339,6 +1340,178 @@ function initSectionPhotos(record) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// SECTION 7 — Permitting Pathway
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const NSECC_LABELS = {
+  none:          'No submission required',
+  notification:  'Notification',
+  approval:      'Approval (s.109 NS Environment Act)',
+  'waa-wetland': 'WAA / Wetland Alteration Approval',
+  tbd:           'To be determined',
+};
+
+const DFO_LABELS = {
+  none:      'No submission required',
+  cop:       'Code of Practice (COP)',
+  rfr:       'Request for Review (RfR)',
+  'rfr-sara':'RfR + SARA authorization',
+  tbd:       'To be determined',
+};
+
+/**
+ * computePermitSuggestions(record)
+ * Derives non-binding pathway suggestions from the assessment data.
+ * Logic:
+ *   - watercourse absent → none / none
+ *   - fish confirmed/likely + SAR → RfR-SARA / Approval (+ WAA if applicable)
+ *   - fish confirmed/likely + existing crossing → RfR / Approval (+ WAA)
+ *   - fish confirmed/likely + new crossing → COP / Approval (+ WAA)
+ *   - non-fish-bearing → none / none (+ WAA if applicable on NSECC side)
+ *   - undetermined → tbd / tbd
+ */
+function computePermitSuggestions(record) {
+  const fb  = record.fishBearing;
+  const wc  = record.watercoursePresent;
+  const sar = record.sarPolygon;
+  const cp  = record.crossingPresent;
+  const war = record.waaRequired;
+
+  const fishConfirmed = fb === 'confirmed' || fb === 'likely';
+  const fishNone      = fb === 'non-unsuitable';
+  const waaYes        = war === 'yes-road' || war === 'yes-excavation';
+
+  // ── DFO ──────────────────────────────────────────────────────────────────────
+  let dfoVal, dfoHint;
+
+  if (wc === false) {
+    dfoVal  = 'none';
+    dfoHint = 'No DFO submission — no watercourse confirmed at this location.';
+  } else if (wc === true && fishConfirmed) {
+    if (sar) {
+      dfoVal  = 'rfr-sara';
+      dfoHint = 'SAR polygon flagged — Request for Review plus SARA s.73 authorization required.';
+    } else if (cp) {
+      dfoVal  = 'rfr';
+      dfoHint = 'Replacing an existing crossing in a fish-bearing watercourse — Request for Review required.';
+    } else {
+      dfoVal  = 'cop';
+      dfoHint = 'New crossing in a fish-bearing watercourse — Code of Practice likely applies.';
+    }
+  } else if (wc === true && fishNone) {
+    dfoVal  = 'none';
+    dfoHint = 'Confirmed non-fish-bearing watercourse — no DFO submission required.';
+  } else if (wc === true && (fb === 'non-confirmed' || fb === 'undetermined')) {
+    dfoVal  = 'tbd';
+    dfoHint = 'Fish-bearing status not confirmed — pathway cannot be determined until assessment is complete.';
+  } else {
+    dfoVal  = 'tbd';
+    dfoHint = 'Complete Watercourse Confirmation and Fish Habitat sections to determine the DFO pathway.';
+  }
+
+  // ── NSECC ─────────────────────────────────────────────────────────────────────
+  let nseccVal, nseccHint;
+
+  if (wc === false) {
+    nseccVal  = 'none';
+    nseccHint = 'No NSECC submission — no watercourse confirmed at this location.';
+  } else if (wc === true && fishConfirmed) {
+    if (waaYes) {
+      nseccVal  = 'waa-wetland';
+      nseccHint = 'Fish-bearing watercourse — Approval (s.109) required. Wetland Alteration Approval (WAA) also required.';
+    } else {
+      nseccVal  = 'approval';
+      nseccHint = 'Fish-bearing watercourse crossing — Approval under NS Environment Act s.109 required.';
+    }
+  } else if (wc === true && fishNone) {
+    if (waaYes) {
+      nseccVal  = 'waa-wetland';
+      nseccHint = 'Non-fish-bearing watercourse — no s.109 Approval required. Wetland Alteration Approval (WAA) required.';
+    } else {
+      nseccVal  = 'none';
+      nseccHint = 'Confirmed non-fish-bearing watercourse — no NSECC submission required.';
+    }
+  } else if (wc === true && (fb === 'non-confirmed' || fb === 'undetermined')) {
+    nseccVal  = 'tbd';
+    nseccHint = 'Fish-bearing status not confirmed — pathway cannot be determined until assessment is complete.';
+  } else {
+    nseccVal  = 'tbd';
+    nseccHint = 'Complete Watercourse Confirmation and Fish Habitat sections to determine the NSECC pathway.';
+  }
+
+  return {
+    nsecc: { value: nseccVal, hint: nseccHint },
+    dfo:   { value: dfoVal,   hint: dfoHint  },
+  };
+}
+
+function initSectionPermits(record) {
+  const panel = document.querySelector('#section-panels .form-section[data-section="permits"]');
+  if (!panel) return;
+
+  const np = record.nseccPathway || '';
+  const dp = record.dfoPathway   || '';
+  const { nsecc, dfo } = computePermitSuggestions(record);
+
+  function suggestBlock(suggested, labels) {
+    return `
+      <div class="permit-suggest">
+        <div class="ps-row">
+          <span class="ps-label">Suggested</span>
+          <span class="ps-value">${esc(labels[suggested.value] || suggested.value)}</span>
+        </div>
+        <div class="ps-row">
+          <span class="ps-label">Rationale</span>
+          <span class="ps-rationale">${esc(suggested.hint)}</span>
+        </div>
+      </div>`;
+  }
+
+  panel.innerHTML = `
+    <div class="field-stack">
+
+      <p class="sub-head">NS Environment and Climate Change (NSECC)</p>
+
+      <label class="field-label">
+        <span>NSECC Pathway <span class="req">*</span></span>
+        <select class="field-input" id="f-nsecc-pathway">
+          <option value="">— select —</option>
+          <option value="none"         ${np === 'none'         ? 'selected' : ''}>No submission required</option>
+          <option value="notification" ${np === 'notification' ? 'selected' : ''}>Notification</option>
+          <option value="approval"     ${np === 'approval'     ? 'selected' : ''}>Approval (s.109)</option>
+          <option value="waa-wetland"  ${np === 'waa-wetland'  ? 'selected' : ''}>WAA / Wetland Alteration Approval</option>
+          <option value="tbd"          ${np === 'tbd'          ? 'selected' : ''}>To be determined</option>
+        </select>
+      </label>
+      ${suggestBlock(nsecc, NSECC_LABELS)}
+
+      <p class="sub-head">Fisheries and Oceans Canada (DFO)</p>
+
+      <label class="field-label">
+        <span>DFO Pathway <span class="req">*</span></span>
+        <select class="field-input" id="f-dfo-pathway">
+          <option value="">— select —</option>
+          <option value="none"     ${dp === 'none'     ? 'selected' : ''}>No submission required</option>
+          <option value="cop"      ${dp === 'cop'      ? 'selected' : ''}>Code of Practice (COP)</option>
+          <option value="rfr"      ${dp === 'rfr'      ? 'selected' : ''}>Request for Review (RfR)</option>
+          <option value="rfr-sara" ${dp === 'rfr-sara' ? 'selected' : ''}>RfR + SARA authorization</option>
+          <option value="tbd"      ${dp === 'tbd'      ? 'selected' : ''}>To be determined</option>
+        </select>
+      </label>
+      ${suggestBlock(dfo, DFO_LABELS)}
+
+    </div>
+  `;
+
+  document.getElementById('f-nsecc-pathway')
+    .addEventListener('change', updateSectionCheckmarks);
+  document.getElementById('f-dfo-pathway')
+    .addEventListener('change', updateSectionCheckmarks);
+
+  updateSectionCheckmarks();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // FORM ACTIONS — save, submit, edit, validation
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -1595,6 +1768,12 @@ function collectFormData() {
     if (el) data.photos[key] = el.checked;
   });
 
+  // Section 7 — Permitting Pathway
+  const fNseccPathway = document.getElementById('f-nsecc-pathway');
+  const fDfoPathway   = document.getElementById('f-dfo-pathway');
+  if (fNseccPathway) data.nseccPathway = fNseccPathway.value;
+  if (fDfoPathway)   data.dfoPathway   = fDfoPathway.value;
+
   return data;
 }
 
@@ -1657,6 +1836,16 @@ function validateForm(record) {
   if (record.wetlandPresent === true && !record.waaRequired) {
     errors.push({ section: 'wetland', fieldId: 'f-waa-required',
       message: 'WAA likely required determination must be made.' });
+  }
+
+  // Section 7 — Permitting Pathway
+  if (!record.nseccPathway) {
+    errors.push({ section: 'permits', fieldId: 'f-nsecc-pathway',
+      message: 'NSECC permitting pathway is required.' });
+  }
+  if (!record.dfoPathway) {
+    errors.push({ section: 'permits', fieldId: 'f-dfo-pathway',
+      message: 'DFO permitting pathway is required.' });
   }
 
   return errors;
@@ -1735,6 +1924,13 @@ function updateSectionCheckmarks() {
   if (firstPhoto) {
     setSectionComplete('photos',
       REQUIRED_PHOTO_IDS.every(id => document.getElementById(id)?.checked));
+  }
+
+  // Section 7 — Permitting Pathway (complete when both pathways are selected)
+  const fNseccPathway = document.getElementById('f-nsecc-pathway');
+  const fDfoPathway   = document.getElementById('f-dfo-pathway');
+  if (fNseccPathway && fDfoPathway) {
+    setSectionComplete('permits', fNseccPathway.value !== '' && fDfoPathway.value !== '');
   }
 }
 

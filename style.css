@@ -1033,6 +1033,9 @@ textarea.has-error {
   margin: 0;
 }
 
+/* Hydrological indicator grids — slightly smaller text to fit two columns */
+.hydro-grid .checkbox-label { font-size: 0.78rem; }
+
 /* Checkbox sub-group label (e.g. Primary / Secondary within a sub-head block) */
 .field-group-label {
   font-size: var(--text-xs);

@@ -1275,7 +1275,7 @@ function initSectionWetland(record) {
           <p class="sub-head">Hydrological Indicators</p>
 
           <p class="field-group-label">Primary — strong evidence</p>
-          <div class="checkbox-list">
+          <div class="checkbox-grid hydro-grid">
             <label class="checkbox-label">
               <input type="checkbox" id="f-hydro-water-marks"
                      ${record.hydroWaterMarks ? 'checked' : ''} />
@@ -1299,7 +1299,7 @@ function initSectionWetland(record) {
           </div>
 
           <p class="field-group-label">Secondary — supporting evidence</p>
-          <div class="checkbox-list">
+          <div class="checkbox-grid hydro-grid">
             <label class="checkbox-label">
               <input type="checkbox" id="f-hydro-water-stained-leaves"
                      ${record.hydroWaterStainedLeaves ? 'checked' : ''} />

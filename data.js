@@ -28,9 +28,8 @@
     time:        '',        // HH:MM, set to now  by createRecord()
     lat:         null,      // decimal degrees
     lon:         null,      // decimal degrees
-    watershed:   '',        // Salmon/Debert | Phillip/Wallace | Economy |
-                            //   Tidnish/Shinimicas | Kelly/Maccan/Hebert |
-                            //   Missaguash | Other
+    watershedPrimary:   '',   // NSE primary watershed name (or 'Other')
+    watershedSecondary: '',   // secondary watershed name (free text)
     priority:    '',        // P1 | P2 | P3
     sarPolygon:  false,
     notes:       '',
@@ -318,7 +317,8 @@
       time:          r.time,
       latitude:      r.lat,
       longitude:     r.lon,
-      watershed:     r.watershed,
+      watershed_primary:   r.watershedPrimary,
+      watershed_secondary: r.watershedSecondary,
       priority_tier: r.priority,
       sar_polygon:   r.sarPolygon,
       notes:         r.notes,

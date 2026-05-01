@@ -30,7 +30,19 @@ const WC_GATED = ['fish', 'geo', 'crossing'];
 // STATE
 // ═══════════════════════════════════════════════════════════════════════════════
 
-let settings      = { assessor: '', projectId: '', watershed: '', priority: '' };
+let settings      = { assessor: '', projectId: '', watershedPrimary: '', watershedSecondary: '', priority: '' };
+
+// NSE primary watershed list — alphabetical, "Other" appended last
+const WATERSHED_OPTIONS = [
+  'Annapolis', 'Antigonish', 'Aspy', 'Avon', 'Baddeck', 'Barrington', 'Bear',
+  "Bras d'Or", 'Cheticamp', 'Clyde', 'Cornwallis', 'East River Sheet Harbour',
+  'Economy', 'Gaspereau', 'Gold', 'Guysborough', 'Indian', 'Jordan', 'Kennecook',
+  'LaHave', "L'Ardoise", 'Liscomb', 'Liverpool', 'Lockeport', 'Mahone', 'Margaree',
+  'Mersey', 'Meteghan', 'Middle (Cape Breton)', 'Mira', 'Moser', 'Musquodoboit',
+  'Parrsboro', 'Petite Rivière', 'Philip', 'Port Mouton', 'Pubnico', 'Sackville',
+  'Salmon (Colchester)', 'Salmon (Yarmouth)', 'Shubenacadie', 'St. Marys',
+  'Stewiacke', 'Tangier', 'Tidnish', 'Tusket', 'Wallace',
+];
 
 // Which view is currently shown: 'list' | 'form'
 let currentView   = 'list';
@@ -60,7 +72,9 @@ const settingsDrawer  = document.getElementById('settings-drawer');
 const btnDrawerClose  = document.getElementById('btn-drawer-close');
 const sAssessor       = document.getElementById('s-assessor');
 const sProjectId      = document.getElementById('s-project-id');
-const sWatershed      = document.getElementById('s-watershed');
+const sWatershedPrimary      = document.getElementById('s-watershed-primary');
+const sWatershedPrimaryOther = document.getElementById('s-watershed-primary-other');
+const sWatershedSecondary    = document.getElementById('s-watershed-secondary');
 const sPriority       = document.getElementById('s-priority');
 const btnSaveSettings = document.getElementById('btn-save-settings');
 const modalUnsaved    = document.getElementById('modal-unsaved');
@@ -345,8 +359,12 @@ function initSectionId(record) {
   const panel = document.querySelector('#section-panels .form-section[data-section="id"]');
   if (!panel) return;
 
-  const ws = record.watershed || '';
-  const pr = record.priority  || '';
+  const pr        = record.priority          || '';
+  const wsPrimary = record.watershedPrimary  || '';
+  const wsSec     = record.watershedSecondary || '';
+  const wsIsKnown = wsPrimary === '' || wsPrimary === 'Other' || WATERSHED_OPTIONS.includes(wsPrimary);
+  const wsDrop    = wsIsKnown ? wsPrimary : 'Other';
+  const wsOther   = wsIsKnown ? '' : wsPrimary;
 
   panel.innerHTML = `
     <div class="field-stack">
@@ -405,18 +423,31 @@ function initSectionId(record) {
       </div>
 
       <label class="field-label">
-        <span>Watershed</span>
-        <select class="field-input" id="f-watershed">
+        <span>Primary Watershed</span>
+        <select class="field-input" id="f-watershed-primary">
           <option value="">— select —</option>
-          <option value="Salmon/Debert"      ${ws === 'Salmon/Debert'      ? 'selected' : ''}>Salmon / Debert</option>
-          <option value="Phillip/Wallace"    ${ws === 'Phillip/Wallace'    ? 'selected' : ''}>Phillip / Wallace</option>
-          <option value="Economy"            ${ws === 'Economy'            ? 'selected' : ''}>Economy</option>
-          <option value="Tidnish/Shinimicas" ${ws === 'Tidnish/Shinimicas' ? 'selected' : ''}>Tidnish / Shinimicas</option>
-          <option value="Kelly/Maccan/Hebert"${ws === 'Kelly/Maccan/Hebert'? 'selected' : ''}>Kelly / Maccan / Hebert</option>
-          <option value="Missaguash"         ${ws === 'Missaguash'         ? 'selected' : ''}>Missaguash</option>
-          <option value="Other"              ${ws === 'Other'              ? 'selected' : ''}>Other</option>
+          ${WATERSHED_OPTIONS.map(opt =>
+            `<option value="${esc(opt)}"${wsDrop === opt ? ' selected' : ''}>${esc(opt)}</option>`
+          ).join('\n          ')}
+          <option value="Other"${wsDrop === 'Other' ? ' selected' : ''}>Other</option>
         </select>
       </label>
+
+      <div id="ws-other-wrap"${wsDrop !== 'Other' ? ' hidden' : ''}>
+        <label class="field-label">
+          <span>Specify primary watershed</span>
+          <input class="field-input" type="text" id="f-watershed-primary-other"
+                 value="${esc(wsOther)}" autocomplete="off" />
+        </label>
+      </div>
+
+      <div id="ws-secondary-wrap"${!wsDrop ? ' hidden' : ''}>
+        <label class="field-label">
+          <span>Secondary Watershed (name)</span>
+          <input class="field-input" type="text" id="f-watershed-secondary"
+                 value="${esc(wsSec)}" autocomplete="off" />
+        </label>
+      </div>
 
       <label class="field-label">
         <span>Priority Tier</span>
@@ -443,6 +474,13 @@ function initSectionId(record) {
 
     </div>
   `;
+
+  // Wire watershed primary dropdown → show/hide tier-2 inputs
+  document.getElementById('f-watershed-primary').addEventListener('change', e => {
+    const val = e.target.value;
+    document.getElementById('ws-other-wrap').hidden    = val !== 'Other';
+    document.getElementById('ws-secondary-wrap').hidden = !val;
+  });
 
   // Wire GPS button
   document.getElementById('btn-gps').addEventListener('click', acquireGPS);
@@ -1786,7 +1824,9 @@ function collectFormData() {
   const fTime       = document.getElementById('f-time');
   const fLat        = document.getElementById('f-lat');
   const fLon        = document.getElementById('f-lon');
-  const fWatershed  = document.getElementById('f-watershed');
+  const fWatershedPrimary      = document.getElementById('f-watershed-primary');
+  const fWatershedPrimaryOther = document.getElementById('f-watershed-primary-other');
+  const fWatershedSecondary    = document.getElementById('f-watershed-secondary');
   const fPriority   = document.getElementById('f-priority');
   const fSar        = document.getElementById('f-sar-polygon');
   const fNotes      = document.getElementById('f-notes');
@@ -1798,7 +1838,14 @@ function collectFormData() {
   if (fTime)       data.time       = fTime.value;
   if (fLat)        data.lat        = fLat.value  !== '' ? parseFloat(fLat.value)  : null;
   if (fLon)        data.lon        = fLon.value  !== '' ? parseFloat(fLon.value)  : null;
-  if (fWatershed)  data.watershed  = fWatershed.value;
+  if (fWatershedPrimary) {
+    if (fWatershedPrimary.value === 'Other') {
+      data.watershedPrimary = fWatershedPrimaryOther?.value.trim() || 'Other';
+    } else {
+      data.watershedPrimary = fWatershedPrimary.value;
+    }
+  }
+  if (fWatershedSecondary) data.watershedSecondary = fWatershedSecondary.value.trim();
   if (fPriority)   data.priority   = fPriority.value;
   if (fSar)        data.sarPolygon = fSar.checked;
   if (fNotes)      data.notes      = fNotes.value;
@@ -2254,7 +2301,7 @@ function renderRecordCard(r) {
         </div>
         <div class="rc-meta">
           <span>${esc(r.date || '—')}</span>
-          ${r.watershed ? `<span class="rc-dot"></span><span>${esc(r.watershed)}</span>` : ''}
+          ${r.watershedPrimary ? `<span class="rc-dot"></span><span>${esc(r.watershedPrimary)}</span>` : ''}
         </div>
       </button>
       <button class="rc-csv-btn" data-csv-id="${esc(r.id)}" type="button"
@@ -2282,10 +2329,11 @@ function renderRecordCard(r) {
  */
 function newRecord() {
   openRecord(CA.createRecord({
-    assessor:  settings.assessor,
-    projectId: settings.projectId || '',
-    watershed: settings.watershed || '',
-    priority:  settings.priority  || '',
+    assessor:           settings.assessor,
+    projectId:          settings.projectId          || '',
+    watershedPrimary:   settings.watershedPrimary   || '',
+    watershedSecondary: settings.watershedSecondary || '',
+    priority:           settings.priority           || '',
   }));
 }
 
@@ -2480,10 +2528,20 @@ function openConfirmModal(message, onConfirm) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function openDrawer() {
-  sAssessor.value   = settings.assessor;
-  sProjectId.value  = settings.projectId || '';
-  sWatershed.value  = settings.watershed || '';
-  sPriority.value   = settings.priority  || '';
+  sAssessor.value  = settings.assessor;
+  sProjectId.value = settings.projectId || '';
+  sPriority.value  = settings.priority  || '';
+
+  const wp        = settings.watershedPrimary || '';
+  const wsIsKnown = wp === '' || wp === 'Other' || WATERSHED_OPTIONS.includes(wp);
+  const wsDrop    = wsIsKnown ? wp : 'Other';
+  const wsOther   = wsIsKnown ? '' : wp;
+  sWatershedPrimary.value      = wsDrop;
+  sWatershedPrimaryOther.value = wsOther;
+  sWatershedSecondary.value    = settings.watershedSecondary || '';
+  document.getElementById('s-ws-other-wrap').hidden    = wsDrop !== 'Other';
+  document.getElementById('s-ws-secondary-wrap').hidden = !wsDrop;
+
   settingsDrawer.classList.add('open');
   drawerOverlay.classList.add('open');
   settingsDrawer.removeAttribute('aria-hidden');
@@ -2502,11 +2560,21 @@ btnMenu.addEventListener('click', openDrawer);
 btnDrawerClose.addEventListener('click', closeDrawer);
 drawerOverlay.addEventListener('click', closeDrawer);
 
+sWatershedPrimary.addEventListener('change', () => {
+  const val = sWatershedPrimary.value;
+  document.getElementById('s-ws-other-wrap').hidden    = val !== 'Other';
+  document.getElementById('s-ws-secondary-wrap').hidden = !val;
+});
+
 btnSaveSettings.addEventListener('click', () => {
   settings.assessor  = sAssessor.value.trim();
   settings.projectId = sProjectId.value.trim();
-  settings.watershed = sWatershed.value;
   settings.priority  = sPriority.value;
+  const wpVal = sWatershedPrimary.value;
+  settings.watershedPrimary   = (wpVal === 'Other')
+    ? (sWatershedPrimaryOther.value.trim() || 'Other')
+    : wpVal;
+  settings.watershedSecondary = sWatershedSecondary.value.trim();
   saveSettings();
   closeDrawer();
   toast('Settings saved', 'success');

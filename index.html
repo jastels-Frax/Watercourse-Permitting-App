@@ -105,19 +105,74 @@
         <input type="text" id="s-project-id" class="field-input"
                placeholder="e.g. L8006-2026" autocomplete="off" />
       </label>
-      <label class="field-label" for="s-watershed">
-        Default Watershed
-        <select id="s-watershed" class="field-input">
+      <label class="field-label" for="s-watershed-primary">
+        Default Primary Watershed
+        <select id="s-watershed-primary" class="field-input">
           <option value="">— none —</option>
-          <option value="Salmon/Debert">Salmon / Debert</option>
-          <option value="Phillip/Wallace">Phillip / Wallace</option>
+          <option value="Annapolis">Annapolis</option>
+          <option value="Antigonish">Antigonish</option>
+          <option value="Aspy">Aspy</option>
+          <option value="Avon">Avon</option>
+          <option value="Baddeck">Baddeck</option>
+          <option value="Barrington">Barrington</option>
+          <option value="Bear">Bear</option>
+          <option value="Bras d'Or">Bras d'Or</option>
+          <option value="Cheticamp">Cheticamp</option>
+          <option value="Clyde">Clyde</option>
+          <option value="Cornwallis">Cornwallis</option>
+          <option value="East River Sheet Harbour">East River Sheet Harbour</option>
           <option value="Economy">Economy</option>
-          <option value="Tidnish/Shinimicas">Tidnish / Shinimicas</option>
-          <option value="Kelly/Maccan/Hebert">Kelly / Maccan / Hebert</option>
-          <option value="Missaguash">Missaguash</option>
+          <option value="Gaspereau">Gaspereau</option>
+          <option value="Gold">Gold</option>
+          <option value="Guysborough">Guysborough</option>
+          <option value="Indian">Indian</option>
+          <option value="Jordan">Jordan</option>
+          <option value="Kennecook">Kennecook</option>
+          <option value="LaHave">LaHave</option>
+          <option value="L'Ardoise">L'Ardoise</option>
+          <option value="Liscomb">Liscomb</option>
+          <option value="Liverpool">Liverpool</option>
+          <option value="Lockeport">Lockeport</option>
+          <option value="Mahone">Mahone</option>
+          <option value="Margaree">Margaree</option>
+          <option value="Mersey">Mersey</option>
+          <option value="Meteghan">Meteghan</option>
+          <option value="Middle (Cape Breton)">Middle (Cape Breton)</option>
+          <option value="Mira">Mira</option>
+          <option value="Moser">Moser</option>
+          <option value="Musquodoboit">Musquodoboit</option>
+          <option value="Parrsboro">Parrsboro</option>
+          <option value="Petite Rivière">Petite Rivière</option>
+          <option value="Philip">Philip</option>
+          <option value="Port Mouton">Port Mouton</option>
+          <option value="Pubnico">Pubnico</option>
+          <option value="Sackville">Sackville</option>
+          <option value="Salmon (Colchester)">Salmon (Colchester)</option>
+          <option value="Salmon (Yarmouth)">Salmon (Yarmouth)</option>
+          <option value="Shubenacadie">Shubenacadie</option>
+          <option value="St. Marys">St. Marys</option>
+          <option value="Stewiacke">Stewiacke</option>
+          <option value="Tangier">Tangier</option>
+          <option value="Tidnish">Tidnish</option>
+          <option value="Tusket">Tusket</option>
+          <option value="Wallace">Wallace</option>
           <option value="Other">Other</option>
         </select>
       </label>
+      <div id="s-ws-other-wrap" hidden>
+        <label class="field-label" for="s-watershed-primary-other">
+          Specify primary watershed
+          <input type="text" id="s-watershed-primary-other" class="field-input"
+                 autocomplete="off" />
+        </label>
+      </div>
+      <div id="s-ws-secondary-wrap" hidden>
+        <label class="field-label" for="s-watershed-secondary">
+          Default Secondary Watershed (name)
+          <input type="text" id="s-watershed-secondary" class="field-input"
+                 autocomplete="off" />
+        </label>
+      </div>
       <label class="field-label" for="s-priority">
         Default Priority Tier
         <select id="s-priority" class="field-input">

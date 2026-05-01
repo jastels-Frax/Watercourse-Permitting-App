@@ -233,6 +233,16 @@ button { font-family: inherit; }
   letter-spacing: 0.07em;
 }
 
+/* Inline note inside a field label (e.g. "> 0.15 m = barrier threshold") */
+.field-note {
+  font-size: var(--text-xs);
+  font-weight: 400;
+  color: var(--clr-text-2);
+  margin-left: var(--sp-xs);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
 /* All text-based inputs */
 .field-input,
 input[type="text"],

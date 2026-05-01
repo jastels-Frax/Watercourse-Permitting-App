@@ -258,6 +258,7 @@ function renderForm(record) {
   initSectionWc(record);
   initSectionFish(record);
   initSectionGeo(record);
+  initSectionCrossing(record);
   // setFooterState runs last so it can disable inputs added by init functions
   setFooterState(record.status === 'complete' ? 'complete' : 'draft');
 }
@@ -919,6 +920,209 @@ function initSectionGeo(record) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// SECTION 4 — Existing Crossing Condition and Fish Passage
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const FP_HELPER = {
+  P:  'Passable — no significant barriers to fish movement.',
+  PB: 'Partial barrier — fish passage impaired; seasonal or size-class dependent.',
+  FB: 'Full barrier — blocks fish passage for all or most species and life stages.',
+};
+
+function initSectionCrossing(record) {
+  const panel = document.querySelector('#section-panels .form-section[data-section="crossing"]');
+  if (!panel) return;
+
+  const st  = record.structureType     || '';
+  const sm  = record.structureMaterial || '';
+  const bc  = record.barrelCondition   || '';
+  const blk = record.blockage          || '';
+  const fpr = record.fishPassageRating || '';
+
+  function nv(val) { return val != null ? val : ''; }
+
+  panel.innerHTML = `
+    <div class="field-stack">
+
+      <div class="toggle-row">
+        <span>Existing crossing present</span>
+        <label class="toggle-wrap" aria-label="Existing crossing present">
+          <input type="checkbox" id="f-crossing-present"
+                 ${record.crossingPresent ? 'checked' : ''} />
+          <span class="toggle-track" aria-hidden="true"></span>
+        </label>
+      </div>
+
+      <div id="crossing-detail"${!record.crossingPresent ? ' hidden' : ''}>
+        <div class="field-stack">
+
+          <label class="field-label">
+            <span>Structure Type</span>
+            <select class="field-input" id="f-structure-type">
+              <option value="">— select —</option>
+              <option value="Culvert – round"     ${st === 'Culvert – round'     ? 'selected' : ''}>Culvert – round</option>
+              <option value="Culvert – pipe arch" ${st === 'Culvert – pipe arch' ? 'selected' : ''}>Culvert – pipe arch</option>
+              <option value="Culvert – box"       ${st === 'Culvert – box'       ? 'selected' : ''}>Culvert – box</option>
+              <option value="Bridge"              ${st === 'Bridge'              ? 'selected' : ''}>Bridge</option>
+              <option value="Ford/causeway"       ${st === 'Ford/causeway'       ? 'selected' : ''}>Ford / causeway</option>
+              <option value="Open bottom arch"    ${st === 'Open bottom arch'    ? 'selected' : ''}>Open bottom arch</option>
+              <option value="Unknown"             ${st === 'Unknown'             ? 'selected' : ''}>Unknown</option>
+              <option value="Other"               ${st === 'Other'               ? 'selected' : ''}>Other</option>
+            </select>
+          </label>
+
+          <label class="field-label">
+            <span>Structure Material</span>
+            <select class="field-input" id="f-structure-material">
+              <option value="">— select —</option>
+              <option value="Corrugated metal" ${sm === 'Corrugated metal' ? 'selected' : ''}>Corrugated metal</option>
+              <option value="HDPE"             ${sm === 'HDPE'             ? 'selected' : ''}>HDPE</option>
+              <option value="Concrete"         ${sm === 'Concrete'         ? 'selected' : ''}>Concrete</option>
+              <option value="Wood"             ${sm === 'Wood'             ? 'selected' : ''}>Wood</option>
+              <option value="Unknown"          ${sm === 'Unknown'          ? 'selected' : ''}>Unknown</option>
+              <option value="Other"            ${sm === 'Other'            ? 'selected' : ''}>Other</option>
+            </select>
+          </label>
+
+          <div class="field-row">
+            <label class="field-label">
+              <span>Number of Barrels</span>
+              <input class="field-input" type="number" id="f-num-barrels"
+                     min="1" step="1" value="${nv(record.numBarrels)}" />
+            </label>
+            <label class="field-label">
+              <span>Diameter / Span (m)</span>
+              <input class="field-input" type="number" id="f-structure-diameter"
+                     step="0.01" min="0" value="${nv(record.structureDiameter)}" />
+            </label>
+          </div>
+
+          <label class="field-label">
+            <span>Outlet Drop (m) <span class="field-note">&gt; 0.15 m = barrier threshold</span></span>
+            <input class="field-input" type="number" id="f-outlet-drop"
+                   step="0.01" min="0" value="${nv(record.outletDrop)}" />
+          </label>
+          <p class="outlet-warn" id="outlet-drop-warn" hidden>
+            ⚠ Outlet drop exceeds 0.15 m — likely full barrier to fish passage.
+          </p>
+
+          <label class="field-label">
+            <span>Barrel Condition</span>
+            <select class="field-input" id="f-barrel-condition">
+              <option value="">— select —</option>
+              <option value="Good"                      ${bc === 'Good'                      ? 'selected' : ''}>Good</option>
+              <option value="Fair – minor damage"       ${bc === 'Fair – minor damage'       ? 'selected' : ''}>Fair – minor damage</option>
+              <option value="Poor – significant damage" ${bc === 'Poor – significant damage' ? 'selected' : ''}>Poor – significant damage</option>
+              <option value="Collapsed / failed"        ${bc === 'Collapsed / failed'        ? 'selected' : ''}>Collapsed / failed</option>
+            </select>
+          </label>
+
+          <label class="field-label">
+            <span>Blockage</span>
+            <select class="field-input" id="f-blockage">
+              <option value="">— select —</option>
+              <option value="None"     ${blk === 'None'     ? 'selected' : ''}>None</option>
+              <option value="Partial"  ${blk === 'Partial'  ? 'selected' : ''}>Partial</option>
+              <option value="Severe"   ${blk === 'Severe'   ? 'selected' : ''}>Severe</option>
+              <option value="Complete" ${blk === 'Complete' ? 'selected' : ''}>Complete</option>
+            </select>
+          </label>
+
+          <div class="toggle-row">
+            <span>Dry barrel at baseflow</span>
+            <label class="toggle-wrap" aria-label="Dry barrel at baseflow">
+              <input type="checkbox" id="f-dry-barrel"
+                     ${record.dryBarrel ? 'checked' : ''} />
+              <span class="toggle-track" aria-hidden="true"></span>
+            </label>
+          </div>
+
+          <label class="field-label">
+            <span>Structural damage notes</span>
+            <textarea class="field-input" id="f-structural-damage-notes"
+                      rows="2">${esc(record.structuralDamageNotes)}</textarea>
+          </label>
+
+        </div>
+      </div>
+
+      <p class="sub-head">Fish Passage Rating</p>
+
+      <label class="field-label">
+        <span>Rating <span class="req">*</span></span>
+        <select class="field-input" id="f-fish-passage-rating">
+          <option value="">— select —</option>
+          <option value="P"  ${fpr === 'P'  ? 'selected' : ''}>P — Passable</option>
+          <option value="PB" ${fpr === 'PB' ? 'selected' : ''}>PB — Partial Barrier</option>
+          <option value="FB" ${fpr === 'FB' ? 'selected' : ''}>FB — Full Barrier</option>
+        </select>
+      </label>
+      <p class="passage-hint" id="fp-helper" hidden></p>
+
+    </div>
+  `;
+
+  document.getElementById('f-crossing-present').addEventListener('change', e => {
+    document.getElementById('crossing-detail').hidden = !e.target.checked;
+    updateSectionCheckmarks();
+  });
+
+  document.getElementById('f-outlet-drop').addEventListener('input', refreshOutletWarn);
+  refreshOutletWarn();
+
+  const fprSelect = document.getElementById('f-fish-passage-rating');
+  fprSelect.addEventListener('change', () => {
+    updateFishPassageStyle();
+    updateSectionCheckmarks();
+  });
+  updateFishPassageStyle();
+
+  updateSectionCheckmarks();
+}
+
+/**
+ * updateFishPassageStyle()
+ * Applies colour class to the fish-passage-rating select and shows
+ * the matching helper text paragraph.
+ */
+function updateFishPassageStyle() {
+  const sel    = document.getElementById('f-fish-passage-rating');
+  const helper = document.getElementById('fp-helper');
+  if (!sel) return;
+
+  sel.classList.remove('fp-pass', 'fp-partial', 'fp-barrier');
+  if (helper) helper.classList.remove('pass', 'partial', 'barrier');
+
+  const val = sel.value;
+  const selCls    = val === 'P' ? 'fp-pass'  : val === 'PB' ? 'fp-partial' : val === 'FB' ? 'fp-barrier' : '';
+  const hintCls   = val === 'P' ? 'pass'     : val === 'PB' ? 'partial'    : val === 'FB' ? 'barrier'    : '';
+
+  if (selCls) sel.classList.add(selCls);
+  if (helper) {
+    if (hintCls) {
+      helper.classList.add(hintCls);
+      helper.textContent = FP_HELPER[val];
+      helper.hidden = false;
+    } else {
+      helper.textContent = '';
+      helper.hidden = true;
+    }
+  }
+}
+
+/**
+ * refreshOutletWarn()
+ * Shows an amber warning paragraph when outlet drop exceeds the 0.15 m barrier threshold.
+ */
+function refreshOutletWarn() {
+  const input = document.getElementById('f-outlet-drop');
+  const warn  = document.getElementById('outlet-drop-warn');
+  if (!input || !warn) return;
+  const val = parseFloat(input.value);
+  warn.hidden = !(input.value !== '' && !isNaN(val) && val > 0.15);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // FORM ACTIONS — save, submit, edit, validation
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -1101,6 +1305,33 @@ function collectFormData() {
   const fvm = document.getElementById('f-velocity-method');
   if (fvm) data.velocityMethod = fvm.value;
 
+  // Section 4 — Existing Crossing Condition
+  const fCrossingPresent   = document.getElementById('f-crossing-present');
+  const fStructureType     = document.getElementById('f-structure-type');
+  const fStructureMat      = document.getElementById('f-structure-material');
+  const fBarrelCond        = document.getElementById('f-barrel-condition');
+  const fBlockage          = document.getElementById('f-blockage');
+  const fDryBarrel         = document.getElementById('f-dry-barrel');
+  const fDamageNotes       = document.getElementById('f-structural-damage-notes');
+  const fFishPassageRating = document.getElementById('f-fish-passage-rating');
+
+  if (fCrossingPresent)   data.crossingPresent      = fCrossingPresent.checked;
+  if (fStructureType)     data.structureType        = fStructureType.value;
+  if (fStructureMat)      data.structureMaterial    = fStructureMat.value;
+  if (fBarrelCond)        data.barrelCondition      = fBarrelCond.value;
+  if (fBlockage)          data.blockage             = fBlockage.value;
+  if (fDryBarrel)         data.dryBarrel            = fDryBarrel.checked;
+  if (fDamageNotes)       data.structuralDamageNotes = fDamageNotes.value;
+  if (fFishPassageRating) data.fishPassageRating    = fFishPassageRating.value;
+
+  const crossNum = (id) => {
+    const el = document.getElementById(id);
+    return el ? (el.value !== '' ? parseFloat(el.value) : null) : undefined;
+  };
+  const nb = crossNum('f-num-barrels');        if (nb !== undefined) data.numBarrels        = nb;
+  const sd = crossNum('f-structure-diameter'); if (sd !== undefined) data.structureDiameter = sd;
+  const od = crossNum('f-outlet-drop');        if (od !== undefined) data.outletDrop        = od;
+
   return data;
 }
 
@@ -1148,6 +1379,14 @@ function validateForm(record) {
     if (!record.velocityMethod) {
       errors.push({ section: 'geo', fieldId: 'f-velocity-method',
         message: 'Velocity measurement method is required.' });
+    }
+  }
+
+  // Section 4 — Crossing Condition (gated: watercourse confirmed)
+  if (record.watercoursePresent === true) {
+    if (!record.fishPassageRating) {
+      errors.push({ section: 'crossing', fieldId: 'f-fish-passage-rating',
+        message: 'Fish passage rating is required.' });
     }
   }
 
@@ -1201,6 +1440,10 @@ function updateSectionCheckmarks() {
   // Section 3 — Watercourse Geometry (complete when velocity method is selected)
   const fVelMethod = document.getElementById('f-velocity-method');
   if (fVelMethod) setSectionComplete('geo', fVelMethod.value !== '');
+
+  // Section 4 — Crossing Condition (complete when fish passage rating is set)
+  const fFishPassageRating = document.getElementById('f-fish-passage-rating');
+  if (fFishPassageRating) setSectionComplete('crossing', fFishPassageRating.value !== '');
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

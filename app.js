@@ -2000,41 +2000,57 @@ function renderList() {
   document.getElementById('btn-export-geojson')
     .addEventListener('click', exportGeoJSON);
 
-  // Tap any card to reopen that record
+  // Tap card to open record; tap export button to download single GeoJSON
   document.getElementById('record-list')
     .addEventListener('click', e => {
+      // Export button is a sibling of record-card — check it first
+      const exportBtn = e.target.closest('[data-export-id]');
+      if (exportBtn) {
+        const rec = CA.getRecord(exportBtn.dataset.exportId);
+        if (rec) exportSingleGeoJSON(rec);
+        return;
+      }
       const card = e.target.closest('[data-record-id]');
-      if (!card) return;
-      const rec = CA.getRecord(card.dataset.recordId);
-      if (rec) openRecord(rec);
+      if (card) {
+        const rec = CA.getRecord(card.dataset.recordId);
+        if (rec) openRecord(rec);
+      }
     });
 }
 
 /**
  * renderRecordCard(record) → HTML string
  * Shows crossing ID, SAR flag, priority tier, status badge, date, watershed.
+ * Wrapped in a .record-card-row so the card button and single-record GeoJSON
+ * export button sit side by side without nesting buttons (invalid HTML).
  */
 function renderRecordCard(r) {
-  const statusClass = r.status === 'complete' ? 'badge-complete' : 'badge-draft';
-  const statusLabel = r.status === 'complete' ? 'Complete' : 'Draft';
+  const statusClass   = r.status === 'complete' ? 'badge-complete' : 'badge-draft';
+  const statusLabel   = r.status === 'complete' ? 'Complete' : 'Draft';
   const sarBadge      = r.sarPolygon
     ? '<span class="badge badge-sar">SAR</span>' : '';
   const priorityBadge = r.priority
     ? `<span class="badge badge-${esc(r.priority.toLowerCase())}">${esc(r.priority)}</span>` : '';
 
   return `
-    <button class="record-card" data-record-id="${esc(r.id)}"
-            aria-label="Open record ${esc(r.crossingId)}">
-      <div class="rc-header">
-        <span class="rc-id">${esc(r.crossingId || '—')}</span>
-        ${sarBadge}${priorityBadge}
-        <span class="badge ${statusClass}">${statusLabel}</span>
-      </div>
-      <div class="rc-meta">
-        <span>${esc(r.date || '—')}</span>
-        ${r.watershed ? `<span class="rc-dot"></span><span>${esc(r.watershed)}</span>` : ''}
-      </div>
-    </button>
+    <div class="record-card-row">
+      <button class="record-card" data-record-id="${esc(r.id)}"
+              aria-label="Open record ${esc(r.crossingId)}">
+        <div class="rc-header">
+          <span class="rc-id">${esc(r.crossingId || '—')}</span>
+          ${sarBadge}${priorityBadge}
+          <span class="badge ${statusClass}">${statusLabel}</span>
+        </div>
+        <div class="rc-meta">
+          <span>${esc(r.date || '—')}</span>
+          ${r.watershed ? `<span class="rc-dot"></span><span>${esc(r.watershed)}</span>` : ''}
+        </div>
+      </button>
+      <button class="rc-export-btn" data-export-id="${esc(r.id)}" type="button"
+              aria-label="Export ${esc(r.crossingId)} as GeoJSON">
+        ↓ GeoJSON
+      </button>
+    </div>
   `;
 }
 
@@ -2049,16 +2065,112 @@ function newRecord() {
   openRecord(CA.createRecord({ assessor: settings.assessor }));
 }
 
-/**
- * exportCSV() / exportGeoJSON()
- * Stubs — full implementation in Part 13.
- */
-function exportCSV() {
-  toast('CSV export — coming in Part 13', 'warn');
+// ═══════════════════════════════════════════════════════════════════════════════
+// EXPORT — CSV and GeoJSON
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/** YYYY-MM-DD string for today, used in export filenames. */
+function dateFilename() {
+  return new Date().toISOString().slice(0, 10);
 }
 
+/**
+ * triggerDownload(blob, filename)
+ * Creates a temporary <a> with an object URL, clicks it, then cleans up.
+ */
+function triggerDownload(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a   = document.createElement('a');
+  a.href     = url;
+  a.download = filename;
+  a.style.cssText = 'position:absolute;left:-9999px;';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+/**
+ * buildGeoJSONBlob(records) → Blob
+ * Serialises an array of records into a GeoJSON FeatureCollection Blob.
+ * Records without lat/lon get null geometry (valid GeoJSON).
+ * Coordinate order: [longitude, latitude] per RFC 7946.
+ */
+function buildGeoJSONBlob(records) {
+  const features = records.map(r => ({
+    type: 'Feature',
+    geometry: (r.lat != null && r.lon != null)
+      ? { type: 'Point', coordinates: [r.lon, r.lat] }
+      : null,
+    properties: CA.serializeRecord(r),
+  }));
+  return new Blob(
+    [JSON.stringify({ type: 'FeatureCollection', features }, null, 2)],
+    { type: 'application/geo+json' }
+  );
+}
+
+/**
+ * exportCSV()
+ * Exports all records as a UTF-8 CSV (with BOM for Excel compatibility).
+ * Free-text fields containing commas, quotes, or newlines are double-quote
+ * escaped per RFC 4180. Null values become empty cells.
+ */
+function exportCSV() {
+  const records = CA.loadRecords();
+  if (!records.length) { toast('No records to export', 'warn'); return; }
+
+  const rows    = records.map(r => CA.serializeRecord(r));
+  const headers = Object.keys(rows[0]);
+
+  function csvCell(v) {
+    if (v === null || v === undefined) return '';
+    const s = String(v);
+    // Quote cells that contain comma, double-quote, CR, or LF
+    return (s.includes(',') || s.includes('"') || s.includes('\r') || s.includes('\n'))
+      ? '"' + s.replace(/"/g, '""') + '"'
+      : s;
+  }
+
+  const csv = [
+    headers.join(','),
+    ...rows.map(row => headers.map(h => csvCell(row[h])).join(',')),
+  ].join('\r\n');
+
+  // UTF-8 BOM (﻿) ensures Excel opens the file with correct encoding
+  triggerDownload(
+    new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' }),
+    `watercourse_crossings_${dateFilename()}.csv`
+  );
+  toast(`CSV exported — ${records.length} record${records.length === 1 ? '' : 's'}`, 'success');
+}
+
+/**
+ * exportGeoJSON()
+ * Exports all records as a GeoJSON FeatureCollection.
+ */
 function exportGeoJSON() {
-  toast('GeoJSON export — coming in Part 13', 'warn');
+  const records = CA.loadRecords();
+  if (!records.length) { toast('No records to export', 'warn'); return; }
+
+  triggerDownload(
+    buildGeoJSONBlob(records),
+    `watercourse_crossings_${dateFilename()}.geojson`
+  );
+  toast(`GeoJSON exported — ${records.length} record${records.length === 1 ? '' : 's'}`, 'success');
+}
+
+/**
+ * exportSingleGeoJSON(record)
+ * Exports one record as a single-feature GeoJSON FeatureCollection.
+ * Filename: <crossingId>_<date>.geojson  (e.g. CR-001_2026-05-01.geojson)
+ */
+function exportSingleGeoJSON(record) {
+  triggerDownload(
+    buildGeoJSONBlob([record]),
+    `${(record.crossingId || 'crossing').replace(/[^A-Za-z0-9_-]/g, '_')}_${dateFilename()}.geojson`
+  );
+  toast(`GeoJSON exported — ${record.crossingId}`, 'success');
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

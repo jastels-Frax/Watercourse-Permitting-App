@@ -756,7 +756,37 @@ input[type="time"] { color-scheme: dark; }
 }
 
 /* ── Record cards (home screen list) ────────────────────────────────────────── */
-.record-list  { display: flex; flex-direction: column; gap: 8px; }
+.record-list     { display: flex; flex-direction: column; gap: 8px; }
+
+/* Wrapper that holds the card button and the per-record export button side by side.
+   Buttons cannot be nested, so the export button is a sibling of the card. */
+.record-card-row {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+}
+.record-card-row > .record-card { flex: 1; min-width: 0; }
+
+/* Per-record GeoJSON export button */
+.rc-export-btn {
+  flex-shrink: 0;
+  align-self: stretch;
+  min-height: 0;
+  padding: var(--sp-sm) var(--sp-md);
+  background: transparent;
+  border: 1.5px solid var(--clr-border);
+  border-radius: var(--radius-sm);
+  color: var(--clr-info);
+  font-family: inherit;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.rc-export-btn:hover  { background: var(--clr-info-dim); border-color: var(--clr-info); }
+.rc-export-btn:active { transform: scale(0.97); }
 
 .record-card {
   background: var(--clr-surface);

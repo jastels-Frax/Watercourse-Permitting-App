@@ -259,6 +259,7 @@ function renderForm(record) {
   initSectionFish(record);
   initSectionGeo(record);
   initSectionCrossing(record);
+  initSectionWetland(record);
   // setFooterState runs last so it can disable inputs added by init functions
   setFooterState(record.status === 'complete' ? 'complete' : 'draft');
 }
@@ -1123,6 +1124,148 @@ function refreshOutletWarn() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// SECTION 5 — Wetland Assessment
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function initSectionWetland(record) {
+  const panel = document.querySelector('#section-panels .form-section[data-section="wetland"]');
+  if (!panel) return;
+
+  const wt  = record.wetlandType         || '';
+  const wc  = record.wetlandConnectivity || '';
+  const war = record.waaRequired         || '';
+
+  panel.innerHTML = `
+    <div class="field-stack">
+
+      <div class="toggle-row">
+        <span>Wetland interaction present</span>
+        <label class="toggle-wrap" aria-label="Wetland interaction present">
+          <input type="checkbox" id="f-wetland-present"
+                 ${record.wetlandPresent ? 'checked' : ''} />
+          <span class="toggle-track" aria-hidden="true"></span>
+        </label>
+      </div>
+
+      <div id="wetland-detail"${!record.wetlandPresent ? ' hidden' : ''}>
+        <div class="field-stack">
+
+          <div class="toggle-row">
+            <span>Wetland confirmed</span>
+            <label class="toggle-wrap" aria-label="Wetland confirmed">
+              <input type="checkbox" id="f-wetland-confirmed"
+                     ${record.wetlandConfirmed ? 'checked' : ''} />
+              <span class="toggle-track" aria-hidden="true"></span>
+            </label>
+          </div>
+
+          <label class="field-label">
+            <span>Wetland Type (CWCS)</span>
+            <select class="field-input" id="f-wetland-type">
+              <option value="">— select —</option>
+              <option value="Bog"                ${wt === 'Bog'                ? 'selected' : ''}>Bog</option>
+              <option value="Fen"                ${wt === 'Fen'                ? 'selected' : ''}>Fen</option>
+              <option value="Marsh"              ${wt === 'Marsh'              ? 'selected' : ''}>Marsh</option>
+              <option value="Swamp"              ${wt === 'Swamp'              ? 'selected' : ''}>Swamp</option>
+              <option value="Shallow open water" ${wt === 'Shallow open water' ? 'selected' : ''}>Shallow open water</option>
+              <option value="Unknown"            ${wt === 'Unknown'            ? 'selected' : ''}>Unknown</option>
+            </select>
+          </label>
+
+          <div class="toggle-row">
+            <span>WESP-AC assessment completed</span>
+            <label class="toggle-wrap" aria-label="WESP-AC assessment completed">
+              <input type="checkbox" id="f-wesp-ac"
+                     ${record.wespAc ? 'checked' : ''} />
+              <span class="toggle-track" aria-hidden="true"></span>
+            </label>
+          </div>
+
+          <label class="field-label">
+            <span>Wetland Connectivity to Watercourse</span>
+            <select class="field-input" id="f-wetland-connectivity">
+              <option value="">— select —</option>
+              <option value="Directly connected"        ${wc === 'Directly connected'        ? 'selected' : ''}>Directly connected</option>
+              <option value="Adjacent/likely connected" ${wc === 'Adjacent/likely connected' ? 'selected' : ''}>Adjacent / likely connected</option>
+              <option value="No connection"             ${wc === 'No connection'             ? 'selected' : ''}>No connection</option>
+              <option value="Unknown"                   ${wc === 'Unknown'                   ? 'selected' : ''}>Unknown</option>
+            </select>
+          </label>
+
+          <p class="sub-head">Field Indicators</p>
+
+          <div class="toggle-row">
+            <span>Hydrophilic vegetation present</span>
+            <label class="toggle-wrap" aria-label="Hydrophilic vegetation present">
+              <input type="checkbox" id="f-hydrophilic-veg"
+                     ${record.hydrophilicVeg ? 'checked' : ''} />
+              <span class="toggle-track" aria-hidden="true"></span>
+            </label>
+          </div>
+
+          <div class="toggle-row">
+            <span>Hydric soils present</span>
+            <label class="toggle-wrap" aria-label="Hydric soils present">
+              <input type="checkbox" id="f-hydric-soils"
+                     ${record.hydricSoils ? 'checked' : ''} />
+              <span class="toggle-track" aria-hidden="true"></span>
+            </label>
+          </div>
+
+          <div class="toggle-row">
+            <span>Hydrological indicators
+              <span class="toggle-hint">water staining, drift lines, watermarks</span>
+            </span>
+            <label class="toggle-wrap" aria-label="Hydrological indicators present">
+              <input type="checkbox" id="f-hydrological-indicators"
+                     ${record.hydrologicalIndicators ? 'checked' : ''} />
+              <span class="toggle-track" aria-hidden="true"></span>
+            </label>
+          </div>
+
+          <label class="field-label">
+            <span>Dominant Vegetation Community</span>
+            <input class="field-input" type="text" id="f-dominant-veg"
+                   value="${esc(record.dominantVeg)}" autocomplete="off" />
+          </label>
+
+          <p class="sub-head">WAA Assessment</p>
+
+          <label class="field-label">
+            <span>WAA Likely Required <span class="req">*</span></span>
+            <select class="field-input" id="f-waa-required">
+              <option value="">— select —</option>
+              <option value="no-mat"         ${war === 'no-mat'         ? 'selected' : ''}>No — no wetland mitigation activity required</option>
+              <option value="yes-road"       ${war === 'yes-road'       ? 'selected' : ''}>Yes — road crossing WAA required</option>
+              <option value="yes-excavation" ${war === 'yes-excavation' ? 'selected' : ''}>Yes — watercourse alteration in wetland required</option>
+              <option value="unknown"        ${war === 'unknown'        ? 'selected' : ''}>Unknown — requires further assessment</option>
+            </select>
+          </label>
+
+          <label class="field-label">
+            <span>Wetland Notes</span>
+            <textarea class="field-input" id="f-wetland-notes"
+                      rows="2">${esc(record.wetlandNotes)}</textarea>
+          </label>
+
+        </div>
+      </div>
+
+    </div>
+  `;
+
+  document.getElementById('f-wetland-present').addEventListener('change', e => {
+    document.getElementById('wetland-detail').hidden = !e.target.checked;
+    updateSectionCheckmarks();
+  });
+
+  document.getElementById('f-waa-required')
+    .addEventListener('change', updateSectionCheckmarks);
+
+  updateSectionCheckmarks();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // FORM ACTIONS — save, submit, edit, validation
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -1332,6 +1475,31 @@ function collectFormData() {
   const sd = crossNum('f-structure-diameter'); if (sd !== undefined) data.structureDiameter = sd;
   const od = crossNum('f-outlet-drop');        if (od !== undefined) data.outletDrop        = od;
 
+  // Section 5 — Wetland Assessment
+  const fWetlandPresent   = document.getElementById('f-wetland-present');
+  const fWetlandConfirmed = document.getElementById('f-wetland-confirmed');
+  const fWetlandType      = document.getElementById('f-wetland-type');
+  const fWespAc           = document.getElementById('f-wesp-ac');
+  const fWetlandConn      = document.getElementById('f-wetland-connectivity');
+  const fHydrophilicVeg   = document.getElementById('f-hydrophilic-veg');
+  const fHydricSoils      = document.getElementById('f-hydric-soils');
+  const fHydroIndicators  = document.getElementById('f-hydrological-indicators');
+  const fDominantVeg      = document.getElementById('f-dominant-veg');
+  const fWaaRequired      = document.getElementById('f-waa-required');
+  const fWetlandNotes     = document.getElementById('f-wetland-notes');
+
+  if (fWetlandPresent)   data.wetlandPresent         = fWetlandPresent.checked;
+  if (fWetlandConfirmed) data.wetlandConfirmed        = fWetlandConfirmed.checked;
+  if (fWetlandType)      data.wetlandType             = fWetlandType.value;
+  if (fWespAc)           data.wespAc                  = fWespAc.checked;
+  if (fWetlandConn)      data.wetlandConnectivity     = fWetlandConn.value;
+  if (fHydrophilicVeg)   data.hydrophilicVeg          = fHydrophilicVeg.checked;
+  if (fHydricSoils)      data.hydricSoils             = fHydricSoils.checked;
+  if (fHydroIndicators)  data.hydrologicalIndicators  = fHydroIndicators.checked;
+  if (fDominantVeg)      data.dominantVeg             = fDominantVeg.value;
+  if (fWaaRequired)      data.waaRequired             = fWaaRequired.value;
+  if (fWetlandNotes)     data.wetlandNotes            = fWetlandNotes.value;
+
   return data;
 }
 
@@ -1390,6 +1558,12 @@ function validateForm(record) {
     }
   }
 
+  // Section 5 — Wetland Assessment (always assessed; gated only by wetlandPresent)
+  if (record.wetlandPresent === true && !record.waaRequired) {
+    errors.push({ section: 'wetland', fieldId: 'f-waa-required',
+      message: 'WAA likely required determination must be made.' });
+  }
+
   return errors;
 }
 
@@ -1444,6 +1618,16 @@ function updateSectionCheckmarks() {
   // Section 4 — Crossing Condition (complete when fish passage rating is set)
   const fFishPassageRating = document.getElementById('f-fish-passage-rating');
   if (fFishPassageRating) setSectionComplete('crossing', fFishPassageRating.value !== '');
+
+  // Section 5 — Wetland Assessment
+  // Complete when: no wetland present (explicit No), OR wetland present and WAA determination made
+  const fWetlandPresent = document.getElementById('f-wetland-present');
+  const fWaaRequired    = document.getElementById('f-waa-required');
+  if (fWetlandPresent) {
+    const present = fWetlandPresent.checked;
+    const waa     = fWaaRequired ? fWaaRequired.value !== '' : false;
+    setSectionComplete('wetland', !present || waa);
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

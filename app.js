@@ -2140,7 +2140,7 @@ function renderList() {
     <div class="home-hero">
       <img src="./assets/LOGO w TEXT black bg.jpg" class="hero-logo"
            alt="Fraxinus Environmental &amp; Geomatics" />
-      <p class="hero-tagline">L8006 NS-NB Reliability Intertie</p>
+      <p class="hero-tagline">NTB Watercourse Assessment</p>
       <button class="btn btn-primary btn-lg" id="btn-new-record">
         + New Record
       </button>

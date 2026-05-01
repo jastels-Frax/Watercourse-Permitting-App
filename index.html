@@ -91,14 +91,41 @@
   </div>
   <div class="drawer-body">
     <p class="helper-text">
-      Default assessor name pre-fills every new record.
-      You can still edit it per record before saving.
+      These defaults pre-fill every new record.
+      You can still edit them per record before saving.
     </p>
     <div class="field-stack">
       <label class="field-label" for="s-assessor">
         Default Assessor Name
         <input type="text" id="s-assessor" class="field-input"
                placeholder="e.g. Jane Smith" autocomplete="name" />
+      </label>
+      <label class="field-label" for="s-project-id">
+        Default Project ID
+        <input type="text" id="s-project-id" class="field-input"
+               placeholder="e.g. L8006-2026" autocomplete="off" />
+      </label>
+      <label class="field-label" for="s-watershed">
+        Default Watershed
+        <select id="s-watershed" class="field-input">
+          <option value="">— none —</option>
+          <option value="Salmon/Debert">Salmon / Debert</option>
+          <option value="Phillip/Wallace">Phillip / Wallace</option>
+          <option value="Economy">Economy</option>
+          <option value="Tidnish/Shinimicas">Tidnish / Shinimicas</option>
+          <option value="Kelly/Maccan/Hebert">Kelly / Maccan / Hebert</option>
+          <option value="Missaguash">Missaguash</option>
+          <option value="Other">Other</option>
+        </select>
+      </label>
+      <label class="field-label" for="s-priority">
+        Default Priority Tier
+        <select id="s-priority" class="field-input">
+          <option value="">— none —</option>
+          <option value="P1">P1 — High</option>
+          <option value="P2">P2 — Medium</option>
+          <option value="P3">P3 — Low</option>
+        </select>
       </label>
     </div>
     <div class="drawer-actions">

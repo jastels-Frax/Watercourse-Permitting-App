@@ -30,7 +30,7 @@ const WC_GATED = ['fish', 'geo', 'crossing'];
 // STATE
 // ═══════════════════════════════════════════════════════════════════════════════
 
-let settings      = { assessor: '' };
+let settings      = { assessor: '', projectId: '', watershed: '', priority: '' };
 
 // Which view is currently shown: 'list' | 'form'
 let currentView   = 'list';
@@ -59,6 +59,9 @@ const drawerOverlay   = document.getElementById('drawer-overlay');
 const settingsDrawer  = document.getElementById('settings-drawer');
 const btnDrawerClose  = document.getElementById('btn-drawer-close');
 const sAssessor       = document.getElementById('s-assessor');
+const sProjectId      = document.getElementById('s-project-id');
+const sWatershed      = document.getElementById('s-watershed');
+const sPriority       = document.getElementById('s-priority');
 const btnSaveSettings = document.getElementById('btn-save-settings');
 const modalUnsaved    = document.getElementById('modal-unsaved');
 const btnModalDraft   = document.getElementById('btn-modal-draft');
@@ -352,11 +355,17 @@ function initSectionId(record) {
                  value="${esc(record.crossingId)}" autocomplete="off" />
         </label>
         <label class="field-label">
-          <span>Assessor <span class="req">*</span></span>
-          <input class="field-input" type="text" id="f-assessor"
-                 value="${esc(record.assessor)}" autocomplete="name" />
+          <span>Project ID</span>
+          <input class="field-input" type="text" id="f-project-id"
+                 value="${esc(record.projectId)}" autocomplete="off" />
         </label>
       </div>
+
+      <label class="field-label">
+        <span>Assessor <span class="req">*</span></span>
+        <input class="field-input" type="text" id="f-assessor"
+               value="${esc(record.assessor)}" autocomplete="name" />
+      </label>
 
       <div class="field-row">
         <label class="field-label">
@@ -856,16 +865,35 @@ function initSectionGeo(record) {
 
       <div class="field-row">
         <label class="field-label">
-          <span>Channel Depth (m)</span>
-          <input class="field-input" type="number" id="f-channel-depth"
-                 step="0.01" min="0" value="${nv(record.channelDepth)}" />
+          <span>Left Bank Depth (m)</span>
+          <input class="field-input" type="number" id="f-depth-left-bank"
+                 step="0.01" min="0" value="${nv(record.depthLeftBank)}" />
         </label>
         <label class="field-label">
-          <span>Bank Height (m)</span>
-          <input class="field-input" type="number" id="f-bank-height"
-                 step="0.01" min="0" value="${nv(record.bankHeight)}" />
+          <span>Centre Depth (m)</span>
+          <input class="field-input" type="number" id="f-depth-centre"
+                 step="0.01" min="0" value="${nv(record.depthCentre)}" />
         </label>
       </div>
+
+      <div class="field-row">
+        <label class="field-label">
+          <span>Right Bank Depth (m)</span>
+          <input class="field-input" type="number" id="f-depth-right-bank"
+                 step="0.01" min="0" value="${nv(record.depthRightBank)}" />
+        </label>
+        <label class="field-label">
+          <span>Thalweg Depth (m)</span>
+          <input class="field-input" type="number" id="f-depth-thalweg"
+                 step="0.01" min="0" value="${nv(record.depthThalweg)}" />
+        </label>
+      </div>
+
+      <label class="field-label">
+        <span>Bank Height (m)</span>
+        <input class="field-input" type="number" id="f-bank-height"
+               step="0.01" min="0" value="${nv(record.bankHeight)}" />
+      </label>
 
       <p class="sub-head">Water Chemistry</p>
 
@@ -879,6 +907,19 @@ function initSectionGeo(record) {
           <span>DO Saturation (%)</span>
           <input class="field-input" type="number" id="f-do-saturation"
                  step="0.1" min="0" max="200" value="${nv(record.doSaturation)}" />
+        </label>
+      </div>
+
+      <div class="field-row">
+        <label class="field-label">
+          <span>Conductivity (µS/cm)</span>
+          <input class="field-input" type="number" id="f-conductivity"
+                 step="1" min="0" value="${nv(record.conductivity)}" />
+        </label>
+        <label class="field-label">
+          <span>Water Temp (°C)</span>
+          <input class="field-input" type="number" id="f-water-temp"
+                 step="0.1" value="${nv(record.waterTemp)}" />
         </label>
       </div>
 
@@ -1286,23 +1327,17 @@ function initSectionWetland(record) {
 // SECTION 6 — Photography Checklist
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const REQUIRED_PHOTO_KEYS = [
-  'upstream', 'downstream', 'inlet', 'outlet',
-  'outletDrop', 'barrelInterior', 'upstreamHabitat', 'downstreamHabitat',
-];
-
 function initSectionPhotos(record) {
   const panel = document.querySelector('#section-panels .form-section[data-section="photos"]');
   if (!panel) return;
 
   const ph = record.photos || {};
 
-  // Additional shots are shown when the corresponding observation was recorded
-  const showFishSign = !!(record.fishObserved || record.fishSign || record.reddsObserved);
-  const showDamage   = !!record.crossingPresent;
-  const showWetland  = !!record.wetlandPresent;
-  const showSar      = !!record.sarPolygon;
-  const hasAdditional = showFishSign || showDamage || showWetland || showSar;
+  const showFishSign   = !!(record.fishObserved || record.fishSign || record.reddsObserved);
+  const showDamage     = !!record.crossingPresent;
+  const showWetland    = !!record.wetlandPresent;
+  const showSar        = !!record.sarPolygon;
+  const hasAdditional  = showFishSign || showDamage || showWetland || showSar;
 
   function chk(id, checked, label) {
     return `
@@ -1316,21 +1351,27 @@ function initSectionPhotos(record) {
     <div class="field-stack">
 
       <p class="msg msg-info">
-        Take photos with your device camera app, then check each box when the shot is captured.
+        Take all required photos with your device camera app, then confirm below.
       </p>
 
       <p class="sub-head">Required (8 shots)</p>
 
-      <div class="checkbox-list">
-        ${chk('f-photo-upstream',           ph.upstream,          '1. Upstream channel view from crossing')}
-        ${chk('f-photo-downstream',         ph.downstream,        '2. Downstream channel view from crossing')}
-        ${chk('f-photo-inlet',              ph.inlet,             '3. Crossing structure — inlet face')}
-        ${chk('f-photo-outlet',             ph.outlet,            '4. Crossing structure — outlet face')}
-        ${chk('f-photo-outlet-drop',        ph.outletDrop,        '5. Outlet drop close-up with tape measure')}
-        ${chk('f-photo-barrel-interior',    ph.barrelInterior,    '6. Barrel interior from inlet end')}
-        ${chk('f-photo-upstream-habitat',   ph.upstreamHabitat,   '7. Upstream habitat — representative reach')}
-        ${chk('f-photo-downstream-habitat', ph.downstreamHabitat, '8. Downstream habitat — representative reach')}
-      </div>
+      <ol class="photo-list">
+        <li>Upstream channel view from crossing</li>
+        <li>Downstream channel view from crossing</li>
+        <li>Crossing structure — inlet face</li>
+        <li>Crossing structure — outlet face</li>
+        <li>Outlet drop close-up with tape measure</li>
+        <li>Barrel interior from inlet end</li>
+        <li>Upstream habitat — representative reach</li>
+        <li>Downstream habitat — representative reach</li>
+      </ol>
+
+      <label class="checkbox-label checkbox-confirm">
+        <input type="checkbox" id="f-photos-confirmed"
+               ${record.photosConfirmed ? 'checked' : ''} />
+        I confirm all required photos have been taken and are GPS-tagged in the device camera app.
+      </label>
 
       ${hasAdditional ? `
         <p class="sub-head">Additional — if applicable</p>
@@ -1345,11 +1386,8 @@ function initSectionPhotos(record) {
     </div>
   `;
 
-  // All 8 required shots drive the section checkmark
-  REQUIRED_PHOTO_KEYS.forEach(key => {
-    const id = `f-photo-${key.replace(/([A-Z])/g, '-$1').toLowerCase()}`;
-    document.getElementById(id)?.addEventListener('change', updateSectionCheckmarks);
-  });
+  document.getElementById('f-photos-confirmed')
+    .addEventListener('change', updateSectionCheckmarks);
 
   updateSectionCheckmarks();
 }
@@ -1652,6 +1690,7 @@ function collectFormData() {
 
   // Section 0 — Crossing Identification
   const fCrossingId = document.getElementById('f-crossing-id');
+  const fProjectId  = document.getElementById('f-project-id');
   const fAssessor   = document.getElementById('f-assessor');
   const fDate       = document.getElementById('f-date');
   const fTime       = document.getElementById('f-time');
@@ -1663,6 +1702,7 @@ function collectFormData() {
   const fNotes      = document.getElementById('f-notes');
 
   if (fCrossingId) data.crossingId = fCrossingId.value.trim();
+  if (fProjectId)  data.projectId  = fProjectId.value.trim();
   if (fAssessor)   data.assessor   = fAssessor.value.trim();
   if (fDate)       data.date       = fDate.value;
   if (fTime)       data.time       = fTime.value;
@@ -1727,15 +1767,20 @@ function collectFormData() {
     const el = document.getElementById(id);
     return el ? (el.value !== '' ? parseFloat(el.value) : null) : undefined;
   };
-  const bfw = geoNum('f-bankfull-width');    if (bfw  !== undefined) data.bankfullWidth    = bfw;
-  const wtw = geoNum('f-wetted-width');      if (wtw  !== undefined) data.wettedWidth      = wtw;
-  const chd = geoNum('f-channel-depth');     if (chd  !== undefined) data.channelDepth     = chd;
-  const bkh = geoNum('f-bank-height');       if (bkh  !== undefined) data.bankHeight       = bkh;
-  const dox = geoNum('f-dissolved-oxygen');  if (dox  !== undefined) data.dissolvedOxygen  = dox;
-  const dos = geoNum('f-do-saturation');     if (dos  !== undefined) data.doSaturation     = dos;
-  const ph  = geoNum('f-ph');               if (ph   !== undefined) data.ph               = ph;
-  const slp = geoNum('f-watercourse-slope'); if (slp  !== undefined) data.watercourseSlope = slp;
-  const fv  = geoNum('f-flow-velocity');    if (fv   !== undefined) data.flowVelocity     = fv;
+  const bfw = geoNum('f-bankfull-width');      if (bfw  !== undefined) data.bankfullWidth   = bfw;
+  const wtw = geoNum('f-wetted-width');        if (wtw  !== undefined) data.wettedWidth     = wtw;
+  const dlb = geoNum('f-depth-left-bank');     if (dlb  !== undefined) data.depthLeftBank   = dlb;
+  const dce = geoNum('f-depth-centre');        if (dce  !== undefined) data.depthCentre     = dce;
+  const drb = geoNum('f-depth-right-bank');    if (drb  !== undefined) data.depthRightBank  = drb;
+  const dth = geoNum('f-depth-thalweg');       if (dth  !== undefined) data.depthThalweg    = dth;
+  const bkh = geoNum('f-bank-height');         if (bkh  !== undefined) data.bankHeight      = bkh;
+  const dox = geoNum('f-dissolved-oxygen');    if (dox  !== undefined) data.dissolvedOxygen = dox;
+  const dos = geoNum('f-do-saturation');       if (dos  !== undefined) data.doSaturation    = dos;
+  const cnd = geoNum('f-conductivity');        if (cnd  !== undefined) data.conductivity    = cnd;
+  const wtp = geoNum('f-water-temp');          if (wtp  !== undefined) data.waterTemp       = wtp;
+  const ph  = geoNum('f-ph');                 if (ph   !== undefined) data.ph              = ph;
+  const slp = geoNum('f-watercourse-slope');   if (slp  !== undefined) data.watercourseSlope = slp;
+  const fv  = geoNum('f-flow-velocity');       if (fv   !== undefined) data.flowVelocity   = fv;
   const fvm = document.getElementById('f-velocity-method');
   if (fvm) data.velocityMethod = fvm.value;
 
@@ -1794,23 +1839,18 @@ function collectFormData() {
   if (fWetlandNotes)     data.wetlandNotes            = fWetlandNotes.value;
 
   // Section 6 — Photography Checklist
-  // Preserve existing photo values then overwrite only what's in the DOM
+  const fPhotosConfirmed = document.getElementById('f-photos-confirmed');
+  if (fPhotosConfirmed) data.photosConfirmed = fPhotosConfirmed.checked;
+
+  // Preserve existing optional photo values then overwrite only what's in the DOM
   data.photos = { ...(currentRecord.photos || {}) };
-  const photoIdMap = {
-    upstream:          'f-photo-upstream',
-    downstream:        'f-photo-downstream',
-    inlet:             'f-photo-inlet',
-    outlet:            'f-photo-outlet',
-    outletDrop:        'f-photo-outlet-drop',
-    barrelInterior:    'f-photo-barrel-interior',
-    upstreamHabitat:   'f-photo-upstream-habitat',
-    downstreamHabitat: 'f-photo-downstream-habitat',
-    fishSign:          'f-photo-fish-sign',
-    damage:            'f-photo-damage',
-    wetland:           'f-photo-wetland',
-    sar:               'f-photo-sar',
+  const optionalPhotoIdMap = {
+    fishSign: 'f-photo-fish-sign',
+    damage:   'f-photo-damage',
+    wetland:  'f-photo-wetland',
+    sar:      'f-photo-sar',
   };
-  Object.entries(photoIdMap).forEach(([key, id]) => {
+  Object.entries(optionalPhotoIdMap).forEach(([key, id]) => {
     const el = document.getElementById(id);
     if (el) data.photos[key] = el.checked;
   });
@@ -1961,17 +2001,10 @@ function updateSectionCheckmarks() {
     setSectionComplete('wetland', touched && (!present || waa));
   }
 
-  // Section 6 — Photography Checklist (complete when all 8 required shots are checked)
-  const REQUIRED_PHOTO_IDS = [
-    'f-photo-upstream', 'f-photo-downstream',
-    'f-photo-inlet', 'f-photo-outlet',
-    'f-photo-outlet-drop', 'f-photo-barrel-interior',
-    'f-photo-upstream-habitat', 'f-photo-downstream-habitat',
-  ];
-  const firstPhoto = document.getElementById('f-photo-upstream');
-  if (firstPhoto) {
-    setSectionComplete('photos',
-      REQUIRED_PHOTO_IDS.every(id => document.getElementById(id)?.checked));
+  // Section 6 — Photography Checklist (complete when confirmation checkbox is checked)
+  const fPhotosConfirmed = document.getElementById('f-photos-confirmed');
+  if (fPhotosConfirmed) {
+    setSectionComplete('photos', fPhotosConfirmed.checked);
   }
 
   // Section 7 — Permitting Pathway (complete when both pathways are selected)
@@ -2097,7 +2130,12 @@ function renderRecordCard(r) {
  * the next auto-incremented Crossing ID, then opens it in the form view.
  */
 function newRecord() {
-  openRecord(CA.createRecord({ assessor: settings.assessor }));
+  openRecord(CA.createRecord({
+    assessor:  settings.assessor,
+    projectId: settings.projectId || '',
+    watershed: settings.watershed || '',
+    priority:  settings.priority  || '',
+  }));
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -2243,7 +2281,10 @@ function openUnsavedModal(onSaveDraft, onDiscard) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function openDrawer() {
-  sAssessor.value = settings.assessor;
+  sAssessor.value   = settings.assessor;
+  sProjectId.value  = settings.projectId || '';
+  sWatershed.value  = settings.watershed || '';
+  sPriority.value   = settings.priority  || '';
   settingsDrawer.classList.add('open');
   drawerOverlay.classList.add('open');
   settingsDrawer.removeAttribute('aria-hidden');
@@ -2263,7 +2304,10 @@ btnDrawerClose.addEventListener('click', closeDrawer);
 drawerOverlay.addEventListener('click', closeDrawer);
 
 btnSaveSettings.addEventListener('click', () => {
-  settings.assessor = sAssessor.value.trim();
+  settings.assessor  = sAssessor.value.trim();
+  settings.projectId = sProjectId.value.trim();
+  settings.watershed = sWatershed.value;
+  settings.priority  = sPriority.value;
   saveSettings();
   closeDrawer();
   toast('Settings saved', 'success');

@@ -22,6 +22,7 @@
 
     // ── Crossing Identification ────────────────────────────────────────────────
     crossingId:  '',        // auto-suggested as CR-###
+    projectId:   '',
     assessor:    '',
     date:        '',        // YYYY-MM-DD, set to today by createRecord()
     time:        '',        // HH:MM, set to now  by createRecord()
@@ -78,10 +79,15 @@
     // ── Section 3: Watercourse Geometry and Slope ─────────────────────────────
     bankfullWidth:    null,   // m
     wettedWidth:      null,   // m
-    channelDepth:     null,   // m
+    depthLeftBank:    null,   // m — left bank depth
+    depthCentre:      null,   // m — centre (mid-channel) depth
+    depthRightBank:   null,   // m — right bank depth
+    depthThalweg:     null,   // m — thalweg (deepest point) depth
     bankHeight:       null,   // m
     dissolvedOxygen:  null,   // mg/L
     doSaturation:     null,   // % saturation
+    conductivity:     null,   // µS/cm
+    waterTemp:        null,   // °C
     ph:               null,   // 4.0–10.0
     watercourseSlope: null,   // % (measured in field)
     flowVelocity:     null,   // m/s
@@ -121,21 +127,13 @@
     wetlandNotes:           '',
 
     // ── Section 6: Photography Checklist ──────────────────────────────────────
+    photosConfirmed: false,  // single accountability checkbox for 8 required shots
     photos: {
-      // Required (8 shots)
-      upstream:          false,  // 1. Upstream channel view from crossing
-      downstream:        false,  // 2. Downstream channel view from crossing
-      inlet:             false,  // 3. Crossing structure – inlet face
-      outlet:            false,  // 4. Crossing structure – outlet face
-      outletDrop:        false,  // 5. Outlet drop close-up with tape measure
-      barrelInterior:    false,  // 6. Barrel interior from inlet end
-      upstreamHabitat:   false,  // 7. Upstream habitat – representative reach
-      downstreamHabitat: false,  // 8. Downstream habitat – representative reach
-      // Additional (if applicable)
-      fishSign: false,           // Fish or fish sign observed
-      damage:   false,           // Structural damage or defects
-      wetland:  false,           // Wetland conditions at abutment areas
-      sar:      false,           // SAR species observed or suspected
+      // Additional (if applicable) — individually tracked
+      fishSign: false,       // Fish or fish sign observed
+      damage:   false,       // Structural damage or defects
+      wetland:  false,       // Wetland conditions at abutment areas
+      sar:      false,       // SAR species observed or suspected
     },
 
     // ── Section 7: Permitting Pathway ─────────────────────────────────────────
@@ -301,6 +299,7 @@
 
       // ── Crossing Identification ───────────────────────────────────────────────
       crossing_id:   r.crossingId,
+      project_id:    r.projectId,
       assessor:      r.assessor,
       date:          r.date,
       time:          r.time,
@@ -347,16 +346,21 @@
       fish_bearing:            r.fishBearing,
 
       // ── Section 3 ─────────────────────────────────────────────────────────────
-      bankfull_width_m:      r.bankfullWidth,
-      wetted_width_m:        r.wettedWidth,
-      channel_depth_m:       r.channelDepth,
-      bank_height_m:         r.bankHeight,
-      dissolved_oxygen_mgl:  r.dissolvedOxygen,
-      do_saturation_pct:     r.doSaturation,
-      ph:                    r.ph,
-      watercourse_slope_pct: r.watercourseSlope,
-      flow_velocity_ms:      r.flowVelocity,
-      velocity_method:       r.velocityMethod,
+      bankfull_width_m:        r.bankfullWidth,
+      wetted_width_m:          r.wettedWidth,
+      depth_left_bank_m:       r.depthLeftBank,
+      depth_centre_m:          r.depthCentre,
+      depth_right_bank_m:      r.depthRightBank,
+      depth_thalweg_m:         r.depthThalweg,
+      bank_height_m:           r.bankHeight,
+      dissolved_oxygen_mgl:    r.dissolvedOxygen,
+      do_saturation_pct:       r.doSaturation,
+      conductivity_us_cm:      r.conductivity,
+      water_temp_c:            r.waterTemp,
+      ph:                      r.ph,
+      watercourse_slope_pct:   r.watercourseSlope,
+      flow_velocity_ms:        r.flowVelocity,
+      velocity_method:         r.velocityMethod,
 
       // ── Section 4 ─────────────────────────────────────────────────────────────
       crossing_present:        r.crossingPresent,
@@ -385,19 +389,12 @@
       waa_required:            r.waaRequired,
       wetland_notes:           r.wetlandNotes,
 
-      // ── Section 6: Photo checklist (individual boolean columns) ───────────────
-      photo_upstream:           r.photos.upstream,
-      photo_downstream:         r.photos.downstream,
-      photo_inlet:              r.photos.inlet,
-      photo_outlet:             r.photos.outlet,
-      photo_outlet_drop:        r.photos.outletDrop,
-      photo_barrel_interior:    r.photos.barrelInterior,
-      photo_upstream_habitat:   r.photos.upstreamHabitat,
-      photo_downstream_habitat: r.photos.downstreamHabitat,
-      photo_fish_sign:          r.photos.fishSign,
-      photo_damage:             r.photos.damage,
-      photo_wetland:            r.photos.wetland,
-      photo_sar:                r.photos.sar,
+      // ── Section 6: Photo checklist ───────────────────────────────────────────
+      photos_confirmed: r.photosConfirmed,
+      photo_fish_sign:  r.photos.fishSign,
+      photo_damage:     r.photos.damage,
+      photo_wetland:    r.photos.wetland,
+      photo_sar:        r.photos.sar,
 
       // ── Section 7 ─────────────────────────────────────────────────────────────
       nsecc_pathway: r.nseccPathway,

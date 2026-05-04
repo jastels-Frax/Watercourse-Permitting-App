@@ -1034,7 +1034,8 @@ function initSectionCrossing(record) {
         <span>Existing crossing present</span>
         <label class="toggle-wrap" aria-label="Existing crossing present">
           <input type="checkbox" id="f-crossing-present"
-                 ${record.crossingPresent ? 'checked' : ''} />
+                 ${record.crossingPresent ? 'checked' : ''}
+                 data-touched="${record.crossingPresent !== null ? 'true' : 'false'}" />
           <span class="toggle-track" aria-hidden="true"></span>
         </label>
       </div>
@@ -1159,6 +1160,7 @@ function initSectionCrossing(record) {
   `;
 
   document.getElementById('f-crossing-present').addEventListener('change', e => {
+    e.target.dataset.touched = 'true';
     document.getElementById('crossing-detail').hidden = !e.target.checked;
     updateSectionCheckmarks();
   });
@@ -2141,19 +2143,28 @@ function updateSectionCheckmarks() {
   const fVelMethod = document.getElementById('f-velocity-method');
   if (fVelMethod) setSectionComplete('geo', fVelMethod.value !== '');
 
-  // Section 4 — Crossing Condition (complete when fish passage rating is set)
-  const fFishPassageRating = document.getElementById('f-fish-passage-rating');
-  if (fFishPassageRating) setSectionComplete('crossing', fFishPassageRating.value !== '');
+  // Section 4 — Crossing Condition
+  // Complete when: touched AND (no crossing OR structure type + fish passage rating both set)
+  const fCrossingPresent = document.getElementById('f-crossing-present');
+  if (fCrossingPresent) {
+    const touched = fCrossingPresent.dataset.touched === 'true';
+    const present = fCrossingPresent.checked;
+    const stType  = document.getElementById('f-structure-type')?.value;
+    const fpr     = document.getElementById('f-fish-passage-rating')?.value;
+    setSectionComplete('crossing', touched && (!present || (!!stType && !!fpr)));
+  }
 
   // Section 5 — Wetland Assessment
-  // Complete when: toggle has been explicitly set (touched), AND (no wetland OR WAA determined)
+  // Complete when: touched AND (no wetland OR wetland confirmed + type + WAA all set)
   const fWetlandPresent = document.getElementById('f-wetland-present');
   const fWaaRequired    = document.getElementById('f-waa-required');
   if (fWetlandPresent) {
-    const touched = fWetlandPresent.dataset.touched === 'true';
-    const present = fWetlandPresent.checked;
-    const waa     = fWaaRequired ? fWaaRequired.value !== '' : false;
-    setSectionComplete('wetland', touched && (!present || waa));
+    const touched    = fWetlandPresent.dataset.touched === 'true';
+    const present    = fWetlandPresent.checked;
+    const confirmed  = document.getElementById('f-wetland-confirmed')?.checked;
+    const wType      = document.getElementById('f-wetland-type')?.value;
+    const waa        = fWaaRequired ? fWaaRequired.value !== '' : false;
+    setSectionComplete('wetland', touched && (!present || (confirmed && !!wType && waa)));
   }
 
   // Section 6 — Photography Checklist (complete when confirmation checkbox is checked)

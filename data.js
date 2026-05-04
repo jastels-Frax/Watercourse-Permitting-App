@@ -93,7 +93,7 @@
     velocityMethod:   '',     // Float method | Flow meter | Not measured
 
     // ── Section 4: Existing Crossing Condition ────────────────────────────────
-    crossingPresent:       false,
+    crossingPresent:       null,
     crossingStatus:        '',    // Existing – assess only | Existing – replacement proposed | New installation
     structureType:         '',   // Culvert – round | Culvert – pipe arch |
                                  //   Culvert – box | Bridge | Ford/causeway |

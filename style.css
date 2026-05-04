@@ -455,6 +455,16 @@ input[type="time"] { color-scheme: dark; }
   background: #fff;
 }
 
+/* Unset (null) toggle: centred thumb + amber border to signal it needs attention */
+.toggle-wrap input[data-touched="false"] + .toggle-track {
+  border-color: #c9860a;
+  background: var(--clr-surface3);
+}
+.toggle-wrap input[data-touched="false"] + .toggle-track::after {
+  transform: translateX(11px);
+  background: #c9860a;
+}
+
 /* Sub-line hint inside a toggle-row label */
 .toggle-hint {
   display: block;

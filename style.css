@@ -804,6 +804,7 @@ input[type="time"] { color-scheme: dark; }
 .record-card-row > .record-card { flex: 1; min-width: 0; }
 
 /* Per-record action buttons (GeoJSON export, CSV export, delete) */
+.rc-pdf-btn,
 .rc-export-btn,
 .rc-csv-btn,
 .rc-delete-btn {
@@ -822,6 +823,9 @@ input[type="time"] { color-scheme: dark; }
   transition: background 0.15s, border-color 0.15s;
   -webkit-tap-highlight-color: transparent;
 }
+.rc-pdf-btn { color: var(--clr-text-2); }
+.rc-pdf-btn:hover  { background: var(--clr-surface2); border-color: var(--clr-border-2); }
+
 .rc-export-btn { color: var(--clr-info); }
 .rc-export-btn:hover  { background: var(--clr-info-dim); border-color: var(--clr-info); }
 
@@ -831,6 +835,7 @@ input[type="time"] { color-scheme: dark; }
 .rc-delete-btn { color: var(--clr-danger); }
 .rc-delete-btn:hover  { background: var(--clr-danger-dim); border-color: var(--clr-danger); }
 
+.rc-pdf-btn:active,
 .rc-export-btn:active,
 .rc-csv-btn:active,
 .rc-delete-btn:active { transform: scale(0.97); }

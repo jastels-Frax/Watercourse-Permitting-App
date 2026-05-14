@@ -252,7 +252,8 @@ function renderForm(record) {
       </div>
       <div id="footer-complete" class="footer-state" hidden>
         <span class="lock-msg">Complete — record locked</span>
-        <button class="btn btn-ghost" id="btn-edit" type="button">Edit</button>
+        <button class="btn btn-ghost" id="btn-edit"  type="button">Edit</button>
+        <button class="btn btn-ghost" id="btn-print" type="button">Print</button>
       </div>
     </footer>
   `;
@@ -268,6 +269,8 @@ function renderForm(record) {
     .addEventListener('click', submitRecord);
   document.getElementById('btn-edit')
     .addEventListener('click', editRecord);
+  document.getElementById('btn-print')
+    .addEventListener('click', () => printRecord(currentRecord));
   document.getElementById('btn-fix-errors')
     .addEventListener('click', () => { clearValidationErrors(); setFooterState('draft'); });
   document.getElementById('btn-submit-anyway')
@@ -2253,6 +2256,13 @@ function renderList() {
   // Tap a per-record action button or the card itself
   document.getElementById('record-list')
     .addEventListener('click', e => {
+      const pdfBtn = e.target.closest('[data-pdf-id]');
+      if (pdfBtn) {
+        e.stopPropagation();
+        const rec = CA.getRecord(pdfBtn.dataset.pdfId);
+        if (rec) printRecord(rec);
+        return;
+      }
       const csvBtn = e.target.closest('[data-csv-id]');
       if (csvBtn) {
         e.stopPropagation();
@@ -2314,6 +2324,10 @@ function renderRecordCard(r) {
           <span>${esc(r.date || '—')}</span>
           ${r.watershedPrimary ? `<span class="rc-dot"></span><span>${esc(r.watershedPrimary)}</span>` : ''}
         </div>
+      </button>
+      <button class="rc-pdf-btn" data-pdf-id="${esc(r.id)}" type="button"
+              aria-label="Print ${esc(r.crossingId)} as PDF">
+        PDF
       </button>
       <button class="rc-csv-btn" data-csv-id="${esc(r.id)}" type="button"
               aria-label="Export ${esc(r.crossingId)} as CSV">
@@ -2480,6 +2494,265 @@ function exportSingleCSV(record) {
     `${safeId}_${dateFilename()}.csv`
   );
   toast(`CSV exported — ${record.crossingId}`, 'success');
+}
+
+/**
+ * printRecord(record)
+ * Builds a print-ready HTML page for the record and opens it in a new window,
+ * then triggers the browser print dialog. Works fully offline — no external libs.
+ */
+function printRecord(record) {
+  const r = record;
+
+  function h(v) {
+    if (v == null || v === '') return '<span style="color:#999">—</span>';
+    return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+  function b(v) {
+    return v === true ? 'Yes' : v === false ? 'No' : '<span style="color:#999">—</span>';
+  }
+  function n(v, unit) {
+    if (v == null || v === '') return '<span style="color:#999">—</span>';
+    return unit ? `${v} ${unit}` : String(v);
+  }
+
+  const sub = r.substrate || {};
+  const hab = r.hab       || {};
+  const ph  = r.photos    || {};
+
+  const subFields = [
+    ['Bedrock', sub.bedrock], ['Boulder', sub.boulder], ['Cobble', sub.cobble],
+    ['Gravel',  sub.gravel],  ['Sand',    sub.sand],    ['Silt',   sub.silt],
+    ['Clay',    sub.clay],    ['Organic', sub.organic],
+  ];
+
+  const habLabels = {
+    pools: 'Pools', riffles: 'Riffles', runs: 'Runs',
+    lwd: 'Large woody debris', undercut: 'Undercut banks',
+    overhang: 'Overhanging riparian veg.',
+  };
+
+  const hydroFields = [
+    ['Water marks',            r.hydroWaterMarks],
+    ['Drift lines',            r.hydroDriftLines],
+    ['Waterlogged soil',       r.hydroWaterloggedSoil],
+    ['Standing water',         r.hydroStandingWater],
+    ['Water-stained leaves',   r.hydroWaterStainedLeaves],
+    ['Oxidized rhizospheres',  r.hydroOxidizedRhizospheres],
+    ['Sediment deposits',      r.hydroSedimentDeposits],
+    ['Algal mats',             r.hydroAlgalMats],
+    ['Iron deposits',          r.hydroIronDeposits],
+    ['Drainage patterns',      r.hydroDrainagePatterns],
+    ['Buttressed roots',       r.hydroButtressedRoots],
+    ['Moss lines',             r.hydroMossLines],
+  ];
+
+  const wcDisplay = r.watercoursePresent === true  ? 'Yes — bed and bank confirmed'
+                  : r.watercoursePresent === false ? 'No — not a watercourse'
+                  : 'Not yet assessed';
+
+  const cpDisplay = r.crossingPresent === true  ? 'Yes'
+                  : r.crossingPresent === false ? 'No'
+                  : 'Not assessed';
+
+  const wpDisplay = r.wetlandPresent === true  ? 'Yes'
+                  : r.wetlandPresent === false ? 'No'
+                  : 'Not assessed';
+
+  function row(label, val) {
+    return `<tr><td class="lbl">${label}</td><td>${val}</td></tr>`;
+  }
+
+  function subHead(text) {
+    return `<tr class="sub-head-row"><td colspan="2">${text}</td></tr>`;
+  }
+
+  function checkList(items) {
+    return `<ul class="chk-list">${items.map(([label, val]) =>
+      `<li class="${val ? 'yes' : 'no'}">${label}</li>`
+    ).join('')}</ul>`;
+  }
+
+  const nseccLabel = NSECC_LABELS[r.nseccPathway] || r.nseccPathway || '';
+  const dfoLabel   = DFO_LABELS[r.dfoPathway]     || r.dfoPathway   || '';
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Assessment — ${r.crossingId || '—'}</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,Helvetica,sans-serif;font-size:10.5pt;color:#111;padding:14mm 16mm 16mm}
+.rpt-header{border-bottom:3px solid #1a6b3c;padding-bottom:3mm;margin-bottom:5mm;display:flex;justify-content:space-between;align-items:flex-end}
+.rpt-title{font-size:15pt;font-weight:bold;color:#1a6b3c}
+.rpt-sub{font-size:8.5pt;color:#555;line-height:1.5}
+h2{font-size:11pt;font-weight:bold;color:#1a6b3c;border-bottom:1px solid #c8e6c9;padding-bottom:1.5mm;margin:5mm 0 2mm}
+table{width:100%;border-collapse:collapse;margin-bottom:2mm;font-size:10pt}
+td{padding:1.2mm 2mm;vertical-align:top;border-bottom:1px solid #f0f0f0}
+td.lbl{font-weight:600;width:38%;color:#333;white-space:nowrap}
+.sub-head-row td{background:#f0f7f0;font-weight:700;font-size:9.5pt;color:#2e7d32;padding:1mm 2mm}
+.sub-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1.5mm;margin:1mm 0 2mm}
+.sub-cell{background:#f5f5f5;padding:1.2mm;text-align:center;font-size:9pt}
+.sub-cell .lbl-s{display:block;font-size:7.5pt;color:#666}
+.chk-list{list-style:none;columns:2;gap:4mm;margin:1mm 0 2mm}
+.chk-list li{padding:0.5mm 0;font-size:9.5pt}
+.chk-list li.yes::before{content:"✓ ";color:#2e7d32;font-weight:bold}
+.chk-list li.no::before{content:"☐ ";color:#aaa}
+.notes{background:#f9f9f9;border-left:3px solid #c8e6c9;padding:2mm 3mm;margin:1mm 0 2mm;font-size:9.5pt}
+.badge{display:inline-block;padding:0.3mm 2mm;border-radius:3px;font-size:8.5pt;font-weight:bold}
+.b-complete{background:#e8f5e9;color:#2e7d32}
+.b-draft{background:#fff3e0;color:#e65100}
+.b-sar{background:#fce4ec;color:#c62828}
+@media print{body{padding:0}@page{margin:14mm 16mm}}
+</style>
+</head>
+<body>
+<div class="rpt-header">
+  <div>
+    <div class="rpt-title">Watercourse Crossing Assessment</div>
+    <div class="rpt-sub">NTB Watercourse Assessment &nbsp;·&nbsp; Fraxinus Environmental &amp; Geomatics</div>
+  </div>
+  <div class="rpt-sub" style="text-align:right">
+    Generated: ${new Date().toLocaleString('en-CA')}<br/>
+    <span class="badge ${r.status === 'complete' ? 'b-complete' : 'b-draft'}">${r.status === 'complete' ? 'Complete' : 'Draft'}</span>
+    ${r.sarPolygon ? '<span class="badge b-sar">SAR</span>' : ''}
+  </div>
+</div>
+
+<h2>Crossing Identification</h2>
+<table>
+  ${row('Crossing ID',        `<strong>${h(r.crossingId)}</strong>`)}
+  ${row('Project ID',         h(r.projectId))}
+  ${row('Assessor',           h(r.assessor))}
+  ${row('Date',               h(r.date))}
+  ${row('Time',               h(r.time))}
+  ${row('Latitude',           r.lat != null ? r.lat : '<span style="color:#999">—</span>')}
+  ${row('Longitude',          r.lon != null ? r.lon : '<span style="color:#999">—</span>')}
+  ${row('Primary Watershed',  h(r.watershedPrimary))}
+  ${row('Secondary Watershed',h(r.watershedSecondary))}
+  ${row('Priority Tier',      h(r.priority))}
+  ${row('SAR Polygon',        b(r.sarPolygon))}
+</table>
+${r.notes ? `<div class="notes"><strong>Notes:</strong> ${h(r.notes)}</div>` : ''}
+
+<h2>Watercourse Confirmation</h2>
+<table>${row('Watercourse Present', wcDisplay)}</table>
+
+<h2>Fish Habitat Assessment</h2>
+<table>
+  ${row('Watershed Area',           n(r.watershedArea, 'km²'))}
+  ${row('Depth Continuity',         h(r.depthContinuity))}
+  ${row('Channel Connectivity',     b(r.channelConnectivity))}
+  ${row('Flow Condition',           h(r.flowCondition))}
+  ${subHead('Substrate Composition')}
+</table>
+<div class="sub-grid">
+  ${subFields.map(([lbl, v]) => `
+    <div class="sub-cell">
+      <span class="lbl-s">${lbl}</span>
+      ${v != null && v !== '' ? `${v}%` : '—'}
+    </div>`).join('')}
+</div>
+<table>
+  ${row('Embeddedness', sub.embeddedness != null ? `${sub.embeddedness}%` : '<span style="color:#999">—</span>')}
+  ${subHead('Habitat Features')}
+</table>
+${checkList(Object.entries(habLabels).map(([k, lbl]) => [lbl, hab[k]]))}
+<table>
+  ${subHead('Fish Observations')}
+  ${row('Fish Observed',        b(r.fishObserved))}
+  ${row('Fish Sign',            b(r.fishSign))}
+  ${row('Spawning Redds',       b(r.reddsObserved))}
+  ${row('Fish Obs. Notes',      h(r.fishObsNotes))}
+  ${subHead('Fish-Bearing Determination')}
+  ${row('Determination',        h(r.fishBearing))}
+</table>
+
+<h2>Watercourse Geometry &amp; Water Quality</h2>
+<table>
+  ${subHead('Channel Dimensions')}
+  ${row('Bankfull Width',   n(r.bankfullWidth,  'm'))}
+  ${row('Wetted Width',     n(r.wettedWidth,    'm'))}
+  ${row('Depth — Left Bank',n(r.depthLeftBank,  'm'))}
+  ${row('Depth — Centre',   n(r.depthCentre,    'm'))}
+  ${row('Depth — Right Bank',n(r.depthRightBank,'m'))}
+  ${row('Depth — Thalweg',  n(r.depthThalweg,   'm'))}
+  ${row('Bank Height',      n(r.bankHeight,     'm'))}
+  ${subHead('Water Chemistry')}
+  ${row('Dissolved Oxygen', n(r.dissolvedOxygen,'mg/L'))}
+  ${row('DO Saturation',    n(r.doSaturation,   '%'))}
+  ${row('Conductivity',     n(r.conductivity,   'µS/cm'))}
+  ${row('Water Temperature',n(r.waterTemp,      '°C'))}
+  ${row('pH',               n(r.ph,             ''))}
+  ${subHead('Flow')}
+  ${row('Watercourse Slope',n(r.watercourseSlope,'%'))}
+  ${row('Flow Velocity',    n(r.flowVelocity,   'm/s'))}
+  ${row('Velocity Method',  h(r.velocityMethod))}
+</table>
+
+<h2>Crossing Condition</h2>
+<table>
+  ${row('Crossing Present', cpDisplay)}
+  ${r.crossingPresent ? `
+  ${row('Crossing Status',    h(r.crossingStatus))}
+  ${row('Structure Type',     h(r.structureType))}
+  ${row('Structure Material', h(r.structureMaterial))}
+  ${row('Number of Barrels',  n(r.numBarrels, ''))}
+  ${row('Structure Diameter', n(r.structureDiameter, 'm'))}
+  ${row('Outlet Drop',        n(r.outletDrop, 'm'))}
+  ${row('Barrel Condition',   h(r.barrelCondition))}
+  ${row('Blockage',           h(r.blockage))}
+  ${row('Dry Barrel',         b(r.dryBarrel))}
+  ${row('Fish Passage Rating',h(r.fishPassageRating))}
+  ` : ''}
+</table>
+${r.structuralDamageNotes ? `<div class="notes"><strong>Structural damage notes:</strong> ${h(r.structuralDamageNotes)}</div>` : ''}
+
+<h2>Wetland Assessment</h2>
+<table>
+  ${row('Wetland Present', wpDisplay)}
+  ${r.wetlandPresent ? `
+  ${row('Wetland Confirmed',    b(r.wetlandConfirmed))}
+  ${row('Wetland Type',         h(r.wetlandType))}
+  ${row('WESP-AC Protocol',     b(r.wespAc))}
+  ${row('Wetland Connectivity', h(r.wetlandConnectivity))}
+  ${row('Hydrophilic Veg.',     b(r.hydrophilicVeg))}
+  ${row('Hydric Soils',         b(r.hydricSoils))}
+  ${row('Dominant Vegetation',  h(r.dominantVeg))}
+  ${row('WAA Required',         h(r.waaRequired))}
+  ` : ''}
+</table>
+${r.wetlandPresent ? `
+<p style="font-weight:600;font-size:9.5pt;margin:1mm 0 0.5mm">Hydrological Indicators</p>
+${checkList(hydroFields)}
+` : ''}
+${r.wetlandNotes ? `<div class="notes"><strong>Wetland notes:</strong> ${h(r.wetlandNotes)}</div>` : ''}
+
+<h2>Photography</h2>
+<table>
+  ${row('Required Photos Confirmed', b(r.photosConfirmed))}
+  ${row('Fish / Fish Sign Photos',   b(ph.fishSign))}
+  ${row('Structural Damage Photos',  b(ph.damage))}
+  ${row('Wetland Photos',            b(ph.wetland))}
+  ${row('SAR Photos',                b(ph.sar))}
+</table>
+
+<h2>Permitting Pathway</h2>
+<table>
+  ${row('NSECC Pathway', h(nseccLabel))}
+  ${row('DFO Pathway',   h(dfoLabel))}
+</table>
+
+</body>
+</html>`;
+
+  const win = window.open('', '_blank', 'width=900,height=750');
+  if (!win) { toast('Pop-up blocked — allow pop-ups to print', 'warn'); return; }
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  setTimeout(() => win.print(), 350);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

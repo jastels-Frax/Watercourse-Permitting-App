@@ -2,7 +2,7 @@
    Cache-first strategy. Bump CACHE_NAME to force refresh on deploy.
 */
 
-const CACHE_NAME = 'crossing-assessor-v22';
+const CACHE_NAME = 'crossing-assessor-v23';
 
 const ASSETS = [
   './',
@@ -14,7 +14,8 @@ const ASSETS = [
   './icons/icon-192.svg',
   './icons/icon-512.svg',
   './assets/LOGO black bg.jpg',
-  './assets/LOGO w TEXT black bg.jpg'
+  './assets/LOGO w TEXT black bg.jpg',
+  './lib/jspdf.umd.min.js'
 ];
 
 // Pre-cache all app assets on install

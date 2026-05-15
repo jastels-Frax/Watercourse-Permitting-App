@@ -58,6 +58,9 @@ let formDirty     = false;
 // Which section tab is active while in form view.
 let activeSection = 'id';
 
+// Which reach (0-based) is currently displayed in Fish and Geo sections.
+let activeReachIdx = 0;
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // DOM REFS
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -141,6 +144,10 @@ function showView(name) {
  * it is not yet saved to storage by this call.
  */
 function openRecord(record) {
+  if (!record.reaches || !record.reaches.length) {
+    record.reaches = [migrateToReach(record)];
+  }
+  activeReachIdx = 0;
   currentRecord = record;
   formDirty     = false;
   showView('form');
@@ -614,6 +621,190 @@ function initSectionWc(record) {
   // Apply filter immediately based on saved value
   applyWatercourseFilter(record.watercoursePresent);
   updateSectionCheckmarks();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// REACH HELPERS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function migrateToReach(record) {
+  const reach = CA.defaultReach(1);
+  if (record.watershedArea     != null) reach.watershedArea     = record.watershedArea;
+  if (record.depthContinuity)           reach.depthContinuity   = record.depthContinuity;
+  if (record.channelConnectivity != null) reach.channelConnectivity = record.channelConnectivity;
+  if (record.flowCondition)             reach.flowCondition     = record.flowCondition;
+  if (record.substrate)                 reach.substrate         = { ...record.substrate };
+  if (record.hab)                       reach.hab               = { ...record.hab };
+  if (record.fishObserved != null)      reach.fishObserved      = record.fishObserved;
+  if (record.fishSign != null)          reach.fishSign          = record.fishSign;
+  if (record.reddsObserved != null)     reach.reddsObserved     = record.reddsObserved;
+  if (record.fishObsNotes)              reach.fishObsNotes      = record.fishObsNotes;
+  if (record.fishBearing)               reach.fishBearing       = record.fishBearing;
+  if (record.bankfullWidth    != null)  reach.bankfullWidth     = record.bankfullWidth;
+  if (record.wettedWidth      != null)  reach.wettedWidth       = record.wettedWidth;
+  if (record.depthLeftBank    != null)  reach.depthLeftBank     = record.depthLeftBank;
+  if (record.depthCentre      != null)  reach.depthCentre       = record.depthCentre;
+  if (record.depthRightBank   != null)  reach.depthRightBank    = record.depthRightBank;
+  if (record.depthThalweg     != null)  reach.depthThalweg      = record.depthThalweg;
+  if (record.bankHeight       != null)  reach.bankHeight        = record.bankHeight;
+  if (record.dissolvedOxygen  != null)  reach.dissolvedOxygen   = record.dissolvedOxygen;
+  if (record.doSaturation     != null)  reach.doSaturation      = record.doSaturation;
+  if (record.conductivity     != null)  reach.conductivity      = record.conductivity;
+  if (record.waterTemp        != null)  reach.waterTemp         = record.waterTemp;
+  if (record.ph               != null)  reach.ph                = record.ph;
+  if (record.watercourseSlope != null)  reach.watercourseSlope  = record.watercourseSlope;
+  if (record.flowVelocity     != null)  reach.flowVelocity      = record.flowVelocity;
+  if (record.velocityMethod)            reach.velocityMethod    = record.velocityMethod;
+  return reach;
+}
+
+function reachTabsHTML(record, sectionId) {
+  const removeDisabled = record.reaches.length <= 1 ? ' disabled' : '';
+  return `
+    <div class="reach-controls" id="${sectionId}-reach-controls">
+      <div class="reach-tabs" id="${sectionId}-reach-tabs">
+        ${record.reaches.map((rch, i) => `
+          <button type="button"
+                  class="reach-tab${i === activeReachIdx ? ' active' : ''}"
+                  data-reach-idx="${i}">${esc(rch.reachLabel)}</button>
+        `).join('')}
+      </div>
+      <div class="reach-actions">
+        <button type="button" class="btn btn-secondary btn-sm" id="${sectionId}-add-reach">+ Reach</button>
+        <button type="button" class="btn btn-danger btn-sm"    id="${sectionId}-remove-reach"${removeDisabled}>✕ Remove</button>
+      </div>
+    </div>
+    <label class="field-label reach-label-row">
+      <span>Reach Label</span>
+      <input class="field-input" type="text" id="${sectionId}-reach-label"
+             value="${esc(record.reaches[activeReachIdx].reachLabel)}" />
+    </label>
+  `;
+}
+
+function bindReachControls(record, sectionId, reinitFn) {
+  document.getElementById(`${sectionId}-reach-tabs`)?.addEventListener('click', e => {
+    const btn = e.target.closest('.reach-tab');
+    if (!btn) return;
+    const newIdx = parseInt(btn.dataset.reachIdx, 10);
+    if (newIdx !== activeReachIdx) switchReach(record, newIdx, reinitFn);
+  });
+
+  document.getElementById(`${sectionId}-add-reach`)?.addEventListener('click', () => {
+    addReach(record, reinitFn);
+  });
+
+  document.getElementById(`${sectionId}-remove-reach`)?.addEventListener('click', () => {
+    if (record.reaches.length <= 1) return;
+    openConfirmModal(
+      `Remove "${record.reaches[activeReachIdx].reachLabel}"? This cannot be undone.`,
+      () => removeReach(record, reinitFn)
+    );
+  });
+
+  document.getElementById(`${sectionId}-reach-label`)?.addEventListener('input', e => {
+    record.reaches[activeReachIdx].reachLabel = e.target.value;
+    const otherId = sectionId === 'fish' ? 'geo' : 'fish';
+    refreshReachTabStrip(record, otherId);
+    refreshReachTabStrip(record, sectionId);
+  });
+}
+
+function readReachFromDOM() {
+  const reach = {};
+  function num(id) {
+    const el = document.getElementById(id);
+    return el ? (el.value !== '' ? parseFloat(el.value) : null) : undefined;
+  }
+  function str(id)  { const el = document.getElementById(id); return el ? el.value : undefined; }
+  function chk(id)  { const el = document.getElementById(id); return el ? el.checked : undefined; }
+
+  const wa = num('f-watershed-area');       if (wa !== undefined) reach.watershedArea     = wa;
+  const dc = str('f-depth-continuity');     if (dc !== undefined) reach.depthContinuity   = dc;
+  const cc = chk('f-channel-connectivity'); if (cc !== undefined) reach.channelConnectivity = cc;
+  const fc = str('f-flow-condition');       if (fc !== undefined) reach.flowCondition     = fc;
+
+  const sub = {};
+  ['bedrock','boulder','cobble','gravel','sand','silt','clay','organic'].forEach(k => {
+    const el = document.getElementById(`f-sub-${k}`);
+    if (el) sub[k] = el.value !== '' ? parseFloat(el.value) : null;
+  });
+  const fEmbed = document.getElementById('f-embeddedness');
+  if (fEmbed) sub.embeddedness = fEmbed.value !== '' ? parseFloat(fEmbed.value) : null;
+  if (Object.keys(sub).length) reach.substrate = sub;
+
+  const hab = {};
+  ['pools','riffles','runs','lwd','undercut','overhang'].forEach(k => {
+    const el = document.getElementById(`f-hab-${k}`);
+    if (el) hab[k] = el.checked;
+  });
+  if (Object.keys(hab).length) reach.hab = hab;
+
+  const fo = chk('f-fish-observed');  if (fo !== undefined) reach.fishObserved  = fo;
+  const fs = chk('f-fish-sign');      if (fs !== undefined) reach.fishSign      = fs;
+  const ro = chk('f-redds-observed'); if (ro !== undefined) reach.reddsObserved = ro;
+  const fn = str('f-fish-obs-notes'); if (fn !== undefined) reach.fishObsNotes  = fn;
+  const fb = str('f-fish-bearing');   if (fb !== undefined) reach.fishBearing   = fb;
+
+  const bfw = num('f-bankfull-width');    if (bfw !== undefined) reach.bankfullWidth    = bfw;
+  const wtw = num('f-wetted-width');      if (wtw !== undefined) reach.wettedWidth      = wtw;
+  const dlb = num('f-depth-left-bank');   if (dlb !== undefined) reach.depthLeftBank    = dlb;
+  const dce = num('f-depth-centre');      if (dce !== undefined) reach.depthCentre      = dce;
+  const drb = num('f-depth-right-bank');  if (drb !== undefined) reach.depthRightBank   = drb;
+  const dth = num('f-depth-thalweg');     if (dth !== undefined) reach.depthThalweg     = dth;
+  const bkh = num('f-bank-height');       if (bkh !== undefined) reach.bankHeight       = bkh;
+  const dox = num('f-dissolved-oxygen');  if (dox !== undefined) reach.dissolvedOxygen  = dox;
+  const dos = num('f-do-saturation');     if (dos !== undefined) reach.doSaturation     = dos;
+  const cnd = num('f-conductivity');      if (cnd !== undefined) reach.conductivity     = cnd;
+  const wtp = num('f-water-temp');        if (wtp !== undefined) reach.waterTemp        = wtp;
+  const phv = num('f-ph');               if (phv !== undefined) reach.ph               = phv;
+  const slp = num('f-watercourse-slope'); if (slp !== undefined) reach.watercourseSlope = slp;
+  const fv  = num('f-flow-velocity');     if (fv  !== undefined) reach.flowVelocity     = fv;
+  const vm  = str('f-velocity-method');  if (vm  !== undefined) reach.velocityMethod   = vm;
+
+  return reach;
+}
+
+function syncActiveReach(record) {
+  const dom = readReachFromDOM();
+  if (record.reaches && record.reaches[activeReachIdx]) {
+    Object.assign(record.reaches[activeReachIdx], dom);
+  }
+}
+
+function switchReach(record, newIdx, reinitFn) {
+  syncActiveReach(record);
+  activeReachIdx = newIdx;
+  reinitFn(record);
+}
+
+function refreshReachTabStrip(record, sectionId) {
+  const container = document.getElementById(`${sectionId}-reach-tabs`);
+  if (!container) return;
+  container.innerHTML = record.reaches.map((rch, i) => `
+    <button type="button"
+            class="reach-tab${i === activeReachIdx ? ' active' : ''}"
+            data-reach-idx="${i}">${esc(rch.reachLabel)}</button>
+  `).join('');
+  const removeBtn = document.getElementById(`${sectionId}-remove-reach`);
+  if (removeBtn) removeBtn.disabled = record.reaches.length <= 1;
+}
+
+function addReach(record, reinitFn) {
+  syncActiveReach(record);
+  record.reaches.push(CA.defaultReach(record.reaches.length + 1));
+  activeReachIdx = record.reaches.length - 1;
+  formDirty = true;
+  reinitFn(record);
+}
+
+function removeReach(record, reinitFn) {
+  if (record.reaches.length <= 1) return;
+  syncActiveReach(record);
+  record.reaches.splice(activeReachIdx, 1);
+  if (activeReachIdx >= record.reaches.length) activeReachIdx = record.reaches.length - 1;
+  formDirty = true;
+  reinitFn(record);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

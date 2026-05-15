@@ -796,6 +796,8 @@ function addReach(record, reinitFn) {
   activeReachIdx = record.reaches.length - 1;
   formDirty = true;
   reinitFn(record);
+  refreshReachTabStrip(record, 'fish');
+  refreshReachTabStrip(record, 'geo');
 }
 
 function removeReach(record, reinitFn) {
@@ -805,6 +807,8 @@ function removeReach(record, reinitFn) {
   if (activeReachIdx >= record.reaches.length) activeReachIdx = record.reaches.length - 1;
   formDirty = true;
   reinitFn(record);
+  refreshReachTabStrip(record, 'fish');
+  refreshReachTabStrip(record, 'geo');
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

@@ -2687,6 +2687,14 @@ function exportPDF(records, filename) {
 
   const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
 
+  if (window.OSWALD_FONTS) {
+    doc.addFileToVFS('Oswald-Regular.ttf',   window.OSWALD_FONTS.regular);
+    doc.addFont('Oswald-Regular.ttf',   'Oswald', 'normal');
+    doc.addFileToVFS('Oswald-SemiBold.ttf', window.OSWALD_FONTS.semibold);
+    doc.addFont('Oswald-SemiBold.ttf', 'Oswald', 'bold');
+  }
+  const PDF_FONT = window.OSWALD_FONTS ? 'Oswald' : 'helvetica';
+
   let y      = MT;
   let rowAlt = false;
 
@@ -2698,7 +2706,7 @@ function exportPDF(records, filename) {
     needsPage(8);
     doc.setFillColor(...C_GREEN);
     doc.rect(ML, y, CW, 6, 'F');
-    doc.setFont('helvetica', 'bold');
+    doc.setFont(PDF_FONT, 'bold');
     doc.setFontSize(8.5);
     doc.setTextColor(255, 255, 255);
     doc.text(title.toUpperCase(), ML + 2.5, y + 4.2);
@@ -2711,7 +2719,7 @@ function exportPDF(records, filename) {
     needsPage(6);
     doc.setFillColor(...C_LGREEN);
     doc.rect(ML, y, CW, 5, 'F');
-    doc.setFont('helvetica', 'bold');
+    doc.setFont(PDF_FONT, 'bold');
     doc.setFontSize(8);
     doc.setTextColor(...C_GREEN);
     doc.text(title, ML + 2.5, y + 3.5);
@@ -2726,11 +2734,11 @@ function exportPDF(records, filename) {
     needsPage(ROW_H);
     if (rowAlt) { doc.setFillColor(...C_LGRAY); doc.rect(ML, y, CW, ROW_H, 'F'); }
     rowAlt = !rowAlt;
-    doc.setFont('helvetica', 'bold');
+    doc.setFont(PDF_FONT, 'bold');
     doc.setFontSize(8);
     doc.setTextColor(...C_GRAY);
     doc.text(label, ML + 2, y + 3.5);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont(PDF_FONT, 'normal');
     doc.setTextColor(val === '—' ? 170 : C_DARK[0], val === '—' ? 170 : C_DARK[1], val === '—' ? 170 : C_DARK[2]);
     doc.text(lines, VAL_X, y + 3.5);
     y += ROW_H;
@@ -2745,11 +2753,11 @@ function exportPDF(records, filename) {
     doc.rect(ML, y, CW, H, 'F');
     doc.setFillColor(...C_GREEN);
     doc.rect(ML, y, 1.5, H, 'F');
-    doc.setFont('helvetica', 'bold');
+    doc.setFont(PDF_FONT, 'bold');
     doc.setFontSize(7.5);
     doc.setTextColor(...C_GRAY);
     doc.text(label + ':', ML + 3, y + 3.5);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont(PDF_FONT, 'normal');
     doc.setFontSize(8);
     doc.setTextColor(...C_DARK);
     doc.text(lines, ML + 3, y + 7.5);
@@ -2774,7 +2782,7 @@ function exportPDF(records, filename) {
       needsPage(5);
       const [lbl0, v0] = pairs[i];
       drawBox(ML + 2, y + 1, v0);
-      doc.setFont('helvetica', 'normal');
+      doc.setFont(PDF_FONT, 'normal');
       doc.setFontSize(8);
       doc.setTextColor(...C_DARK);
       doc.text(lbl0, ML + 6.5, y + 3.5);
@@ -2799,11 +2807,11 @@ function exportPDF(records, filename) {
     // ── Page header strip ──────────────────────────────────────────────────
     doc.setFillColor(...C_GREEN);
     doc.rect(0, 0, PAGE_W, 16, 'F');
-    doc.setFont('helvetica', 'bold');
+    doc.setFont(PDF_FONT, 'bold');
     doc.setFontSize(13);
     doc.setTextColor(255, 255, 255);
     doc.text('Watercourse Crossing Assessment', ML, 9);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont(PDF_FONT, 'normal');
     doc.setFontSize(7.5);
     doc.text(
       `NTB Watercourse Assessment  ·  Fraxinus Environmental & Geomatics  ·  Generated: ${new Date().toLocaleString('en-CA')}` +
@@ -2867,11 +2875,11 @@ function exportPDF(records, filename) {
             const cx = ML + c * CELL_W;
             doc.setFillColor(...C_LGRAY);
             doc.rect(cx, y, CELL_W - 0.5, CELL_H, 'F');
-            doc.setFont('helvetica', 'normal');
+            doc.setFont(PDF_FONT, 'normal');
             doc.setFontSize(7);
             doc.setTextColor(...C_GRAY);
             doc.text(lbl, cx + CELL_W / 2, y + 3, { align: 'center' });
-            doc.setFont('helvetica', 'bold');
+            doc.setFont(PDF_FONT, 'bold');
             doc.setFontSize(9);
             doc.setTextColor(...C_DARK);
             doc.text(
@@ -3013,7 +3021,7 @@ function exportPDF(records, filename) {
   const total = doc.internal.getNumberOfPages();
   for (let p = 1; p <= total; p++) {
     doc.setPage(p);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont(PDF_FONT, 'normal');
     doc.setFontSize(7);
     doc.setTextColor(...C_GRAY);
     doc.text(`Page ${p} of ${total}`, PAGE_W - MR, PAGE_H - 5, { align: 'right' });

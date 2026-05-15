@@ -1139,3 +1139,54 @@ select.fp-barrier { border-color: var(--clr-danger)  !important; color: var(--cl
   font-weight: 600;
 }
 
+/* ── Reach selector controls ────────────────────────────────────────────────── */
+.reach-controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-sm);
+  margin-bottom: var(--sp-sm);
+}
+
+.reach-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.reach-tab {
+  padding: 5px 12px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--clr-border);
+  background: var(--clr-surface-2);
+  color: var(--clr-text-2);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.reach-tab.active {
+  border-color: var(--clr-accent);
+  background: rgba(76, 175, 80, 0.15);
+  color: var(--clr-accent);
+  font-weight: 600;
+}
+
+.reach-tab:hover:not(.active) {
+  border-color: var(--clr-accent);
+  color: var(--clr-text);
+}
+
+.reach-actions {
+  display: flex;
+  gap: var(--sp-sm);
+}
+
+.reach-label-row {
+  margin-bottom: var(--sp-md);
+}
+
+.btn-sm {
+  padding: 5px 10px;
+  font-size: var(--text-sm);
+}

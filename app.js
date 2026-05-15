@@ -815,21 +815,24 @@ function initSectionFish(record) {
   const panel = document.querySelector('#section-panels .form-section[data-section="fish"]');
   if (!panel) return;
 
-  const sub = record.substrate || {};
-  const hab = record.hab       || {};
-  const dc  = record.depthContinuity || '';
-  const fc  = record.flowCondition   || '';
-  const fb  = record.fishBearing     || '';
+  const reach = record.reaches[activeReachIdx] || CA.defaultReach(1);
+  const sub = reach.substrate || {};
+  const hab = reach.hab       || {};
+  const dc  = reach.depthContinuity || '';
+  const fc  = reach.flowCondition   || '';
+  const fb  = reach.fishBearing     || '';
 
   function sv(key) { return sub[key] != null ? sub[key] : ''; }
 
   panel.innerHTML = `
     <div class="field-stack">
 
+      ${reachTabsHTML(record, 'fish')}
+
       <label class="field-label">
         <span>Watershed Area (km²)</span>
         <input class="field-input" type="number" id="f-watershed-area"
-               step="0.01" min="0" value="${record.watershedArea ?? ''}" />
+               step="0.01" min="0" value="${reach.watershedArea ?? ''}" />
       </label>
       <div class="reach-chip" id="f-reach-chip"></div>
 
@@ -849,7 +852,7 @@ function initSectionFish(record) {
         <span>Channel Connectivity</span>
         <label class="toggle-wrap" aria-label="Channel connectivity">
           <input type="checkbox" id="f-channel-connectivity"
-                 ${record.channelConnectivity ? 'checked' : ''} />
+                 ${reach.channelConnectivity ? 'checked' : ''} />
           <span class="toggle-track" aria-hidden="true"></span>
         </label>
       </div>
@@ -941,7 +944,7 @@ function initSectionFish(record) {
         <span>Fish observed</span>
         <label class="toggle-wrap" aria-label="Fish observed">
           <input type="checkbox" id="f-fish-observed"
-                 ${record.fishObserved ? 'checked' : ''} />
+                 ${reach.fishObserved ? 'checked' : ''} />
           <span class="toggle-track" aria-hidden="true"></span>
         </label>
       </div>
@@ -949,7 +952,7 @@ function initSectionFish(record) {
         <span>Fish sign (carcasses, redds, scales)</span>
         <label class="toggle-wrap" aria-label="Fish sign observed">
           <input type="checkbox" id="f-fish-sign"
-                 ${record.fishSign ? 'checked' : ''} />
+                 ${reach.fishSign ? 'checked' : ''} />
           <span class="toggle-track" aria-hidden="true"></span>
         </label>
       </div>
@@ -957,7 +960,7 @@ function initSectionFish(record) {
         <span>Spawning redds observed</span>
         <label class="toggle-wrap" aria-label="Spawning redds observed">
           <input type="checkbox" id="f-redds-observed"
-                 ${record.reddsObserved ? 'checked' : ''} />
+                 ${reach.reddsObserved ? 'checked' : ''} />
           <span class="toggle-track" aria-hidden="true"></span>
         </label>
       </div>
@@ -965,7 +968,7 @@ function initSectionFish(record) {
       <label class="field-label">
         <span>Fish observation notes</span>
         <textarea class="field-input" id="f-fish-obs-notes"
-                  rows="2">${esc(record.fishObsNotes)}</textarea>
+                  rows="2">${esc(reach.fishObsNotes)}</textarea>
       </label>
 
       <p class="sub-head">Fish-Bearing Determination</p>
@@ -985,12 +988,12 @@ function initSectionFish(record) {
     </div>
   `;
 
-  // Watershed area → reach distance guidance chip
+  bindReachControls(record, 'fish', initSectionFish);
+
   document.getElementById('f-watershed-area')
     .addEventListener('input', updateReachChip);
   updateReachChip();
 
-  // Substrate inputs → running total
   const SUB_IDS = [
     'f-sub-bedrock', 'f-sub-boulder', 'f-sub-cobble', 'f-sub-gravel',
     'f-sub-sand',    'f-sub-silt',    'f-sub-clay',   'f-sub-organic',
@@ -1000,7 +1003,6 @@ function initSectionFish(record) {
   );
   refreshSubTotal();
 
-  // Fish-bearing selection drives the section checkmark
   document.getElementById('f-fish-bearing')
     .addEventListener('change', updateSectionCheckmarks);
 
@@ -1076,12 +1078,15 @@ function initSectionGeo(record) {
   const panel = document.querySelector('#section-panels .form-section[data-section="geo"]');
   if (!panel) return;
 
-  const vm = record.velocityMethod || '';
+  const reach = record.reaches[activeReachIdx] || CA.defaultReach(1);
+  const vm = reach.velocityMethod || '';
 
   function nv(val) { return val != null ? val : ''; }
 
   panel.innerHTML = `
     <div class="field-stack">
+
+      ${reachTabsHTML(record, 'geo')}
 
       <p class="sub-head">Channel Dimensions</p>
 
@@ -1089,12 +1094,12 @@ function initSectionGeo(record) {
         <label class="field-label">
           <span>Bankfull Width (m)</span>
           <input class="field-input" type="number" id="f-bankfull-width"
-                 step="0.01" min="0" value="${nv(record.bankfullWidth)}" />
+                 step="0.01" min="0" value="${nv(reach.bankfullWidth)}" />
         </label>
         <label class="field-label">
           <span>Wetted Width (m)</span>
           <input class="field-input" type="number" id="f-wetted-width"
-                 step="0.01" min="0" value="${nv(record.wettedWidth)}" />
+                 step="0.01" min="0" value="${nv(reach.wettedWidth)}" />
         </label>
       </div>
 
@@ -1102,12 +1107,12 @@ function initSectionGeo(record) {
         <label class="field-label">
           <span>Left Bank Depth (m)</span>
           <input class="field-input" type="number" id="f-depth-left-bank"
-                 step="0.01" min="0" value="${nv(record.depthLeftBank)}" />
+                 step="0.01" min="0" value="${nv(reach.depthLeftBank)}" />
         </label>
         <label class="field-label">
           <span>Centre Depth (m)</span>
           <input class="field-input" type="number" id="f-depth-centre"
-                 step="0.01" min="0" value="${nv(record.depthCentre)}" />
+                 step="0.01" min="0" value="${nv(reach.depthCentre)}" />
         </label>
       </div>
 
@@ -1115,19 +1120,19 @@ function initSectionGeo(record) {
         <label class="field-label">
           <span>Right Bank Depth (m)</span>
           <input class="field-input" type="number" id="f-depth-right-bank"
-                 step="0.01" min="0" value="${nv(record.depthRightBank)}" />
+                 step="0.01" min="0" value="${nv(reach.depthRightBank)}" />
         </label>
         <label class="field-label">
           <span>Thalweg Depth (m)</span>
           <input class="field-input" type="number" id="f-depth-thalweg"
-                 step="0.01" min="0" value="${nv(record.depthThalweg)}" />
+                 step="0.01" min="0" value="${nv(reach.depthThalweg)}" />
         </label>
       </div>
 
       <label class="field-label">
         <span>Bank Height (m)</span>
         <input class="field-input" type="number" id="f-bank-height"
-               step="0.01" min="0" value="${nv(record.bankHeight)}" />
+               step="0.01" min="0" value="${nv(reach.bankHeight)}" />
       </label>
 
       <p class="sub-head">Water Chemistry</p>
@@ -1136,12 +1141,12 @@ function initSectionGeo(record) {
         <label class="field-label">
           <span>Dissolved Oxygen (mg/L)</span>
           <input class="field-input" type="number" id="f-dissolved-oxygen"
-                 step="0.01" min="0" value="${nv(record.dissolvedOxygen)}" />
+                 step="0.01" min="0" value="${nv(reach.dissolvedOxygen)}" />
         </label>
         <label class="field-label">
           <span>DO Saturation (%)</span>
           <input class="field-input" type="number" id="f-do-saturation"
-                 step="0.1" min="0" max="200" value="${nv(record.doSaturation)}" />
+                 step="0.1" min="0" max="200" value="${nv(reach.doSaturation)}" />
         </label>
       </div>
 
@@ -1149,19 +1154,19 @@ function initSectionGeo(record) {
         <label class="field-label">
           <span>Conductivity (µS/cm)</span>
           <input class="field-input" type="number" id="f-conductivity"
-                 step="1" min="0" value="${nv(record.conductivity)}" />
+                 step="1" min="0" value="${nv(reach.conductivity)}" />
         </label>
         <label class="field-label">
           <span>Water Temp (°C)</span>
           <input class="field-input" type="number" id="f-water-temp"
-                 step="0.1" value="${nv(record.waterTemp)}" />
+                 step="0.1" value="${nv(reach.waterTemp)}" />
         </label>
       </div>
 
       <label class="field-label">
         <span>pH (4.0 – 10.0)</span>
         <input class="field-input" type="number" id="f-ph"
-               step="0.1" min="4" max="10" value="${nv(record.ph)}" />
+               step="0.1" min="4" max="10" value="${nv(reach.ph)}" />
       </label>
 
       <p class="sub-head">Slope and Flow</p>
@@ -1169,14 +1174,14 @@ function initSectionGeo(record) {
       <label class="field-label">
         <span>Watercourse Slope (%)</span>
         <input class="field-input" type="number" id="f-watercourse-slope"
-               step="0.1" min="0" value="${nv(record.watercourseSlope)}" />
+               step="0.1" min="0" value="${nv(reach.watercourseSlope)}" />
       </label>
 
       <div class="field-row">
         <label class="field-label">
           <span>Flow Velocity (m/s) — float or meter</span>
           <input class="field-input" type="number" id="f-flow-velocity"
-                 step="0.01" min="0" value="${nv(record.flowVelocity)}" />
+                 step="0.01" min="0" value="${nv(reach.flowVelocity)}" />
         </label>
         <label class="field-label">
           <span>Velocity Method <span class="req">*</span></span>
@@ -1191,6 +1196,8 @@ function initSectionGeo(record) {
 
     </div>
   `;
+
+  bindReachControls(record, 'geo', initSectionGeo);
 
   document.getElementById('f-velocity-method')
     .addEventListener('change', updateSectionCheckmarks);
@@ -1657,7 +1664,8 @@ function initSectionPhotos(record) {
 
   const ph = record.photos || {};
 
-  const showFishSign   = !!(record.fishObserved || record.fishSign || record.reddsObserved);
+  const reaches = record.reaches || [];
+  const showFishSign = reaches.some(rch => rch.fishObserved || rch.fishSign || rch.reddsObserved);
   const showDamage     = !!record.crossingPresent;
   const showWetland    = !!record.wetlandPresent;
   const showSar        = !!record.sarPolygon;
@@ -1748,7 +1756,14 @@ const DFO_LABELS = {
  *   - undetermined → tbd / tbd
  */
 function computePermitSuggestions(record) {
-  const fb  = record.fishBearing;
+  const BEARING_RANK = { confirmed: 5, likely: 4, 'non-confirmed': 3, undetermined: 2, 'non-unsuitable': 1 };
+  const reaches = record.reaches || [];
+  let fb = '';
+  let bestRank = -1;
+  reaches.forEach(rch => {
+    const rank = BEARING_RANK[rch.fishBearing] || 0;
+    if (rank > bestRank) { bestRank = rank; fb = rch.fishBearing || ''; }
+  });
   const wc  = record.watercoursePresent;
   const sar = record.sarPolygon;
   const cp  = record.crossingPresent;
@@ -2054,68 +2069,13 @@ function collectFormData() {
                             : null;
   }
 
-  // Section 2 — Fish Habitat Assessment
-  const fWatershedArea = document.getElementById('f-watershed-area');
-  if (fWatershedArea) {
-    data.watershedArea = fWatershedArea.value !== '' ? parseFloat(fWatershedArea.value) : null;
-  }
-
-  const fDepthCont = document.getElementById('f-depth-continuity');
-  const fChanConn  = document.getElementById('f-channel-connectivity');
-  const fFlowCond  = document.getElementById('f-flow-condition');
-  if (fDepthCont) data.depthContinuity     = fDepthCont.value;
-  if (fChanConn)  data.channelConnectivity = fChanConn.checked;
-  if (fFlowCond)  data.flowCondition       = fFlowCond.value;
-
-  // Substrate — clone nested object then overwrite individual keys
-  data.substrate = { ...(currentRecord.substrate || {}) };
-  const SUB_KEYS = ['bedrock','boulder','cobble','gravel','sand','silt','clay','organic'];
-  SUB_KEYS.forEach(key => {
-    const el = document.getElementById(`f-sub-${key}`);
-    if (el) data.substrate[key] = el.value !== '' ? parseFloat(el.value) : null;
-  });
-  const fEmbed = document.getElementById('f-embeddedness');
-  if (fEmbed) data.substrate.embeddedness = fEmbed.value !== '' ? parseFloat(fEmbed.value) : null;
-
-  // Habitat features — clone nested object then overwrite
-  data.hab = { ...(currentRecord.hab || {}) };
-  ['pools','riffles','runs','lwd','undercut','overhang'].forEach(key => {
-    const el = document.getElementById(`f-hab-${key}`);
-    if (el) data.hab[key] = el.checked;
-  });
-
-  const fFishObs      = document.getElementById('f-fish-observed');
-  const fFishSign     = document.getElementById('f-fish-sign');
-  const fRedds        = document.getElementById('f-redds-observed');
-  const fFishObsNotes = document.getElementById('f-fish-obs-notes');
-  const fFishBearing  = document.getElementById('f-fish-bearing');
-  if (fFishObs)      data.fishObserved  = fFishObs.checked;
-  if (fFishSign)     data.fishSign      = fFishSign.checked;
-  if (fRedds)        data.reddsObserved = fRedds.checked;
-  if (fFishObsNotes) data.fishObsNotes  = fFishObsNotes.value;
-  if (fFishBearing)  data.fishBearing   = fFishBearing.value;
-
-  // Section 3 — Watercourse Geometry and Slope
-  const geoNum = (id) => {
-    const el = document.getElementById(id);
-    return el ? (el.value !== '' ? parseFloat(el.value) : null) : undefined;
-  };
-  const bfw = geoNum('f-bankfull-width');      if (bfw  !== undefined) data.bankfullWidth   = bfw;
-  const wtw = geoNum('f-wetted-width');        if (wtw  !== undefined) data.wettedWidth     = wtw;
-  const dlb = geoNum('f-depth-left-bank');     if (dlb  !== undefined) data.depthLeftBank   = dlb;
-  const dce = geoNum('f-depth-centre');        if (dce  !== undefined) data.depthCentre     = dce;
-  const drb = geoNum('f-depth-right-bank');    if (drb  !== undefined) data.depthRightBank  = drb;
-  const dth = geoNum('f-depth-thalweg');       if (dth  !== undefined) data.depthThalweg    = dth;
-  const bkh = geoNum('f-bank-height');         if (bkh  !== undefined) data.bankHeight      = bkh;
-  const dox = geoNum('f-dissolved-oxygen');    if (dox  !== undefined) data.dissolvedOxygen = dox;
-  const dos = geoNum('f-do-saturation');       if (dos  !== undefined) data.doSaturation    = dos;
-  const cnd = geoNum('f-conductivity');        if (cnd  !== undefined) data.conductivity    = cnd;
-  const wtp = geoNum('f-water-temp');          if (wtp  !== undefined) data.waterTemp       = wtp;
-  const ph  = geoNum('f-ph');                 if (ph   !== undefined) data.ph              = ph;
-  const slp = geoNum('f-watercourse-slope');   if (slp  !== undefined) data.watercourseSlope = slp;
-  const fv  = geoNum('f-flow-velocity');       if (fv   !== undefined) data.flowVelocity   = fv;
-  const fvm = document.getElementById('f-velocity-method');
-  if (fvm) data.velocityMethod = fvm.value;
+  // Sections 2 & 3 — Fish + Geo (stored per-reach)
+  syncActiveReach(data);
+  data.reaches = currentRecord.reaches.map(r => ({
+    ...r,
+    substrate: { ...(r.substrate || {}) },
+    hab:       { ...(r.hab       || {}) },
+  }));
 
   // Section 4 — Existing Crossing Condition
   const fCrossingPresent   = document.getElementById('f-crossing-present');
@@ -2237,28 +2197,31 @@ function validateForm(record) {
 
   // Section 2 — Fish Habitat Assessment (only relevant when watercourse is confirmed)
   if (record.watercoursePresent === true) {
-    if (!record.fishBearing) {
+    const hasAnyFishBearing = (record.reaches || []).some(rch => !!rch.fishBearing);
+    if (!hasAnyFishBearing) {
       errors.push({ section: 'fish', fieldId: 'f-fish-bearing',
-        message: 'Fish-bearing determination is required.' });
+        message: 'Fish-bearing determination is required for at least one reach.' });
     }
-    // Substrate total must equal 100 if any value was entered
-    const sub     = record.substrate || {};
     const SUB_KEYS = ['bedrock','boulder','cobble','gravel','sand','silt','clay','organic'];
-    const filled  = SUB_KEYS.map(k => sub[k]).filter(v => v != null);
-    if (filled.length > 0) {
-      const total = filled.reduce((a, b) => a + b, 0);
-      if (total !== 100) {
-        errors.push({ section: 'fish', fieldId: 'f-sub-total',
-          message: `Substrate total is ${total}% — must equal 100%.` });
+    (record.reaches || []).forEach(rch => {
+      const sub    = rch.substrate || {};
+      const filled = SUB_KEYS.map(k => sub[k]).filter(v => v != null);
+      if (filled.length > 0) {
+        const total = filled.reduce((a, b) => a + b, 0);
+        if (total !== 100) {
+          errors.push({ section: 'fish', fieldId: 'f-sub-total',
+            message: `${rch.reachLabel}: Substrate total is ${total}% — must equal 100%.` });
+        }
       }
-    }
+    });
   }
 
   // Section 3 — Watercourse Geometry and Slope (gated: watercourse confirmed)
   if (record.watercoursePresent === true) {
-    if (!record.velocityMethod) {
+    const hasAnyVelocityMethod = (record.reaches || []).some(rch => !!rch.velocityMethod);
+    if (!hasAnyVelocityMethod) {
       errors.push({ section: 'geo', fieldId: 'f-velocity-method',
-        message: 'Velocity measurement method is required.' });
+        message: 'Velocity measurement method is required for at least one reach.' });
     }
   }
 
@@ -2329,13 +2292,21 @@ function updateSectionCheckmarks() {
   const fWcPresent = document.getElementById('f-wc-present');
   if (fWcPresent) setSectionComplete('wc', fWcPresent.value !== '');
 
-  // Section 2 — Fish Habitat Assessment (complete when fish-bearing determination is set)
-  const fFishBearing = document.getElementById('f-fish-bearing');
-  if (fFishBearing) setSectionComplete('fish', fFishBearing.value !== '');
+  // Section 2 — Fish Habitat Assessment (complete when any reach has fish-bearing set)
+  {
+    const fFishBearing = document.getElementById('f-fish-bearing');
+    const activeHasFb  = !!(fFishBearing?.value);
+    const otherFb      = (currentRecord?.reaches || []).some((r, i) => i !== activeReachIdx && !!r.fishBearing);
+    if (fFishBearing || currentRecord?.reaches?.length) setSectionComplete('fish', activeHasFb || otherFb);
+  }
 
-  // Section 3 — Watercourse Geometry (complete when velocity method is selected)
-  const fVelMethod = document.getElementById('f-velocity-method');
-  if (fVelMethod) setSectionComplete('geo', fVelMethod.value !== '');
+  // Section 3 — Watercourse Geometry (complete when any reach has velocity method set)
+  {
+    const fVelMethod  = document.getElementById('f-velocity-method');
+    const activeHasVm = !!(fVelMethod?.value);
+    const otherVm     = (currentRecord?.reaches || []).some((r, i) => i !== activeReachIdx && !!r.velocityMethod);
+    if (fVelMethod || currentRecord?.reaches?.length) setSectionComplete('geo', activeHasVm || otherVm);
+  }
 
   // Section 4 — Crossing Condition
   // Complete when: touched AND (no crossing OR structure type + fish passage rating both set)
@@ -2594,7 +2565,7 @@ function buildGeoJSONBlob(records) {
     geometry: (r.lat != null && r.lon != null)
       ? { type: 'Point', coordinates: [r.lon, r.lat] }
       : null,
-    properties: CA.serializeRecord(r),
+    properties: CA.serializeForGeoJSON(r),
   }));
   return new Blob(
     [JSON.stringify({ type: 'FeatureCollection', features }, null, 2)],
@@ -2612,7 +2583,7 @@ function exportCSV() {
   const records = CA.loadRecords();
   if (!records.length) { toast('No records to export', 'warn'); return; }
 
-  const rows    = records.map(r => CA.serializeRecord(r));
+  const rows    = records.flatMap(r => CA.serializeRecord(r));
   const headers = Object.keys(rows[0]);
 
   function csvCell(v) {
@@ -2671,8 +2642,8 @@ function exportSingleGeoJSON(record) {
  * as the bulk export. Filename: <crossingId>_<date>.csv
  */
 function exportSingleCSV(record) {
-  const row     = CA.serializeRecord(record);
-  const headers = Object.keys(row);
+  const rows    = CA.serializeRecord(record);
+  const headers = Object.keys(rows[0]);
   function csvCell(v) {
     if (v === null || v === undefined) return '';
     const s = String(v);
@@ -2681,7 +2652,7 @@ function exportSingleCSV(record) {
   }
   const csv = [
     headers.join(','),
-    headers.map(h => csvCell(row[h])).join(','),
+    ...rows.map(row => headers.map(h => csvCell(row[h])).join(',')),
   ].join('\r\n');
   const safeId = (record.crossingId || 'crossing').replace(/[^A-Za-z0-9_-]/g, '_');
   triggerDownload(
@@ -2868,83 +2839,100 @@ function exportPDF(records, filename) {
 
     // ── 2: Fish ────────────────────────────────────────────────────────────
     sectionHeader('Fish Habitat Assessment');
-    field('Watershed Area',     nv(r.watershedArea, 'km²'));
-    field('Depth Continuity',   r.depthContinuity);
-    field('Channel Connectivity', bv(r.channelConnectivity));
-    field('Flow Condition',     r.flowCondition);
+    const reaches = (r.reaches && r.reaches.length) ? r.reaches : [];
+    if (!reaches.length) {
+      field('Reach data', 'None recorded');
+    } else {
+      const CELL_W = CW / 4, CELL_H = 8;
+      reaches.forEach(rch => {
+        const rsub = rch.substrate || {};
+        const rhab = rch.hab       || {};
+        if (reaches.length > 1) subHead(rch.reachLabel);
+        field('Watershed Area',       nv(rch.watershedArea, 'km²'));
+        field('Depth Continuity',     rch.depthContinuity);
+        field('Channel Connectivity', bv(rch.channelConnectivity));
+        field('Flow Condition',       rch.flowCondition);
 
-    subHead('Substrate Composition');
-    const subCells = [
-      ['Bedrock', sub.bedrock], ['Boulder', sub.boulder],
-      ['Cobble',  sub.cobble],  ['Gravel',  sub.gravel],
-      ['Sand',    sub.sand],    ['Silt',    sub.silt],
-      ['Clay',    sub.clay],    ['Organic', sub.organic],
-    ];
-    const CELL_W = CW / 4, CELL_H = 8;
-    for (let r2 = 0; r2 < 2; r2++) {
-      needsPage(CELL_H);
-      for (let c = 0; c < 4; c++) {
-        const [lbl, val] = subCells[r2 * 4 + c];
-        const cx = ML + c * CELL_W;
-        doc.setFillColor(...C_LGRAY);
-        doc.rect(cx, y, CELL_W - 0.5, CELL_H, 'F');
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(7);
-        doc.setTextColor(...C_GRAY);
-        doc.text(lbl, cx + CELL_W / 2, y + 3, { align: 'center' });
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(9);
+        subHead('Substrate Composition');
+        const subCells = [
+          ['Bedrock', rsub.bedrock], ['Boulder', rsub.boulder],
+          ['Cobble',  rsub.cobble],  ['Gravel',  rsub.gravel],
+          ['Sand',    rsub.sand],    ['Silt',    rsub.silt],
+          ['Clay',    rsub.clay],    ['Organic', rsub.organic],
+        ];
+        for (let r2 = 0; r2 < 2; r2++) {
+          needsPage(CELL_H);
+          for (let c = 0; c < 4; c++) {
+            const [lbl, val] = subCells[r2 * 4 + c];
+            const cx = ML + c * CELL_W;
+            doc.setFillColor(...C_LGRAY);
+            doc.rect(cx, y, CELL_W - 0.5, CELL_H, 'F');
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(7);
+            doc.setTextColor(...C_GRAY);
+            doc.text(lbl, cx + CELL_W / 2, y + 3, { align: 'center' });
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(9);
+            doc.setTextColor(...C_DARK);
+            doc.text(
+              (val != null && val !== '') ? `${val}%` : '—',
+              cx + CELL_W / 2, y + 7, { align: 'center' }
+            );
+          }
+          y += CELL_H + 0.5;
+        }
         doc.setTextColor(...C_DARK);
-        doc.text(
-          (val != null && val !== '') ? `${val}%` : '—',
-          cx + CELL_W / 2, y + 7, { align: 'center' }
-        );
-      }
-      y += CELL_H + 0.5;
+        field('Embeddedness', rsub.embeddedness != null ? `${rsub.embeddedness}%` : '');
+
+        subHead('Habitat Features');
+        checkRows([
+          ['Pools',              rhab.pools],
+          ['Riffles',            rhab.riffles],
+          ['Runs',               rhab.runs],
+          ['Large woody debris', rhab.lwd],
+          ['Undercut banks',     rhab.undercut],
+          ['Overhanging riparian veg.', rhab.overhang],
+        ]);
+
+        subHead('Fish Observations');
+        field('Fish Observed',  bv(rch.fishObserved));
+        field('Fish Sign',      bv(rch.fishSign));
+        field('Spawning Redds', bv(rch.reddsObserved));
+        noteBlock('Obs. Notes', rch.fishObsNotes);
+
+        subHead('Fish-Bearing Determination');
+        field('Determination',  rch.fishBearing);
+      });
     }
-    doc.setTextColor(...C_DARK);
-    field('Embeddedness', sub.embeddedness != null ? `${sub.embeddedness}%` : '');
-
-    subHead('Habitat Features');
-    checkRows([
-      ['Pools',              hab.pools],
-      ['Riffles',            hab.riffles],
-      ['Runs',               hab.runs],
-      ['Large woody debris', hab.lwd],
-      ['Undercut banks',     hab.undercut],
-      ['Overhanging riparian veg.', hab.overhang],
-    ]);
-
-    subHead('Fish Observations');
-    field('Fish Observed',   bv(r.fishObserved));
-    field('Fish Sign',       bv(r.fishSign));
-    field('Spawning Redds',  bv(r.reddsObserved));
-    noteBlock('Obs. Notes',  r.fishObsNotes);
-
-    subHead('Fish-Bearing Determination');
-    field('Determination',   r.fishBearing);
     y += 2;
 
     // ── 3: Geo ─────────────────────────────────────────────────────────────
     sectionHeader('Watercourse Geometry & Water Quality');
-    subHead('Channel Dimensions');
-    field('Bankfull Width',    nv(r.bankfullWidth,  'm'));
-    field('Wetted Width',      nv(r.wettedWidth,    'm'));
-    field('Depth — Left Bank', nv(r.depthLeftBank, 'm'));
-    field('Depth — Centre',    nv(r.depthCentre,   'm'));
-    field('Depth — Right Bank',nv(r.depthRightBank,'m'));
-    field('Depth — Thalweg',   nv(r.depthThalweg,  'm'));
-    field('Bank Height',       nv(r.bankHeight,     'm'));
-    subHead('Water Chemistry');
-    field('Dissolved Oxygen',  nv(r.dissolvedOxygen, 'mg/L'));
-    field('DO Saturation',     nv(r.doSaturation,    '%'));
-    field('Conductivity',      nv(r.conductivity,    'µS/cm'));
-    field('Water Temperature', nv(r.waterTemp,       '°C'));
-    field('pH',                nv(r.ph,              ''));
-    subHead('Flow');
-    field('Watercourse Slope', nv(r.watercourseSlope, '%'));
-    field('Flow Velocity',     nv(r.flowVelocity,     'm/s'));
-    field('Velocity Method',   r.velocityMethod);
+    if (!reaches.length) {
+      field('Reach data', 'None recorded');
+    } else {
+      reaches.forEach(rch => {
+        if (reaches.length > 1) subHead(rch.reachLabel);
+        subHead('Channel Dimensions');
+        field('Bankfull Width',     nv(rch.bankfullWidth,  'm'));
+        field('Wetted Width',       nv(rch.wettedWidth,    'm'));
+        field('Depth — Left Bank',  nv(rch.depthLeftBank, 'm'));
+        field('Depth — Centre',     nv(rch.depthCentre,   'm'));
+        field('Depth — Right Bank', nv(rch.depthRightBank,'m'));
+        field('Depth — Thalweg',    nv(rch.depthThalweg,  'm'));
+        field('Bank Height',        nv(rch.bankHeight,     'm'));
+        subHead('Water Chemistry');
+        field('Dissolved Oxygen',   nv(rch.dissolvedOxygen, 'mg/L'));
+        field('DO Saturation',      nv(rch.doSaturation,    '%'));
+        field('Conductivity',       nv(rch.conductivity,    'µS/cm'));
+        field('Water Temperature',  nv(rch.waterTemp,       '°C'));
+        field('pH',                 nv(rch.ph,              ''));
+        subHead('Flow');
+        field('Watercourse Slope',  nv(rch.watercourseSlope, '%'));
+        field('Flow Velocity',      nv(rch.flowVelocity,     'm/s'));
+        field('Velocity Method',    rch.velocityMethod);
+      });
+    }
     y += 2;
 
     // ── 4: Crossing ────────────────────────────────────────────────────────

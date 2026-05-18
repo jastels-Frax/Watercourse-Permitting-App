@@ -682,31 +682,30 @@ function reachTabsHTML(record, sectionId) {
   `;
 }
 
-function bindReachControls(record, sectionId, reinitFn) {
+function bindReachControls(sectionId) {
   document.getElementById(`${sectionId}-reach-tabs`)?.addEventListener('click', e => {
     const btn = e.target.closest('.reach-tab');
     if (!btn) return;
     const newIdx = parseInt(btn.dataset.reachIdx, 10);
-    if (newIdx !== activeReachIdx) switchReach(record, newIdx, reinitFn);
+    if (newIdx !== activeReachIdx) switchReach(newIdx);
   });
 
   document.getElementById(`${sectionId}-add-reach`)?.addEventListener('click', () => {
-    addReach(record, reinitFn);
+    addReach();
   });
 
   document.getElementById(`${sectionId}-remove-reach`)?.addEventListener('click', () => {
-    if (record.reaches.length <= 1) return;
+    if (currentRecord.reaches.length <= 1) return;
     openConfirmModal(
-      `Remove "${record.reaches[activeReachIdx].reachLabel}"? This cannot be undone.`,
-      () => removeReach(record, reinitFn)
+      `Remove "${currentRecord.reaches[activeReachIdx].reachLabel}"? This cannot be undone.`,
+      () => removeReach()
     );
   });
 
   document.getElementById(`${sectionId}-reach-label`)?.addEventListener('input', e => {
-    record.reaches[activeReachIdx].reachLabel = e.target.value;
-    const otherId = sectionId === 'fish' ? 'geo' : 'fish';
-    refreshReachTabStrip(record, otherId);
-    refreshReachTabStrip(record, sectionId);
+    currentRecord.reaches[activeReachIdx].reachLabel = e.target.value;
+    refreshReachTabStrip(currentRecord, 'fish');
+    refreshReachTabStrip(currentRecord, 'geo');
   });
 }
 
@@ -772,10 +771,11 @@ function syncActiveReach(record) {
   }
 }
 
-function switchReach(record, newIdx, reinitFn) {
-  syncActiveReach(record);
+function switchReach(newIdx) {
+  syncActiveReach(currentRecord);
   activeReachIdx = newIdx;
-  reinitFn(record);
+  initSectionFish(currentRecord);
+  initSectionGeo(currentRecord);
 }
 
 function refreshReachTabStrip(record, sectionId) {
@@ -790,25 +790,23 @@ function refreshReachTabStrip(record, sectionId) {
   if (removeBtn) removeBtn.disabled = record.reaches.length <= 1;
 }
 
-function addReach(record, reinitFn) {
-  syncActiveReach(record);
-  record.reaches.push(CA.defaultReach(record.reaches.length + 1));
-  activeReachIdx = record.reaches.length - 1;
+function addReach() {
+  syncActiveReach(currentRecord);
+  currentRecord.reaches.push(CA.defaultReach(currentRecord.reaches.length + 1));
+  activeReachIdx = currentRecord.reaches.length - 1;
   formDirty = true;
-  reinitFn(record);
-  refreshReachTabStrip(record, 'fish');
-  refreshReachTabStrip(record, 'geo');
+  initSectionFish(currentRecord);
+  initSectionGeo(currentRecord);
 }
 
-function removeReach(record, reinitFn) {
-  if (record.reaches.length <= 1) return;
-  syncActiveReach(record);
-  record.reaches.splice(activeReachIdx, 1);
-  if (activeReachIdx >= record.reaches.length) activeReachIdx = record.reaches.length - 1;
+function removeReach() {
+  if (currentRecord.reaches.length <= 1) return;
+  syncActiveReach(currentRecord);
+  currentRecord.reaches.splice(activeReachIdx, 1);
+  if (activeReachIdx >= currentRecord.reaches.length) activeReachIdx = currentRecord.reaches.length - 1;
   formDirty = true;
-  reinitFn(record);
-  refreshReachTabStrip(record, 'fish');
-  refreshReachTabStrip(record, 'geo');
+  initSectionFish(currentRecord);
+  initSectionGeo(currentRecord);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -992,7 +990,7 @@ function initSectionFish(record) {
     </div>
   `;
 
-  bindReachControls(record, 'fish', initSectionFish);
+  bindReachControls('fish');
 
   document.getElementById('f-watershed-area')
     .addEventListener('input', updateReachChip);
@@ -1201,7 +1199,7 @@ function initSectionGeo(record) {
     </div>
   `;
 
-  bindReachControls(record, 'geo', initSectionGeo);
+  bindReachControls('geo');
 
   document.getElementById('f-velocity-method')
     .addEventListener('change', updateSectionCheckmarks);

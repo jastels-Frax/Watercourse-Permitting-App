@@ -271,8 +271,15 @@ function renderForm(record) {
       </div>
       <div id="footer-complete" class="footer-state" hidden>
         <span class="lock-msg">Complete — record locked</span>
-        <button class="btn btn-ghost" id="btn-edit"  type="button">Edit</button>
-        <button class="btn btn-ghost" id="btn-print" type="button">Print</button>
+        <button class="btn btn-ghost" id="btn-edit" type="button">Edit</button>
+        <div class="export-wrap">
+          <button class="btn btn-ghost" id="btn-export" type="button">Export</button>
+          <div class="export-panel" id="export-panel" hidden>
+            <button class="btn btn-ghost" id="btn-form-export-csv"     type="button">CSV</button>
+            <button class="btn btn-ghost" id="btn-form-export-geojson" type="button">GeoJSON</button>
+            <button class="btn btn-ghost" id="btn-form-export-pdf"     type="button">PDF</button>
+          </div>
+        </div>
       </div>
     </footer>
   `;
@@ -288,8 +295,30 @@ function renderForm(record) {
     .addEventListener('click', submitRecord);
   document.getElementById('btn-edit')
     .addEventListener('click', editRecord);
-  document.getElementById('btn-print')
-    .addEventListener('click', () => exportSinglePDF(currentRecord));
+  document.getElementById('btn-export').addEventListener('click', e => {
+    e.stopPropagation();
+    const panel = document.getElementById('export-panel');
+    if (!panel.hidden) {
+      panel.hidden = true;
+      document.removeEventListener('click', closeFormExportPanel);
+    } else {
+      panel.hidden = false;
+      document.addEventListener('click', closeFormExportPanel);
+    }
+  });
+  document.getElementById('btn-form-export-csv').addEventListener('click', () => {
+    exportCSV();
+    showView('list');
+  });
+  document.getElementById('btn-form-export-geojson').addEventListener('click', () => {
+    exportGeoJSON();
+    showView('list');
+  });
+  document.getElementById('btn-form-export-pdf').addEventListener('click', () => {
+    if (!window.jspdf) { toast('PDF library not loaded', 'warn'); return; }
+    exportSinglePDF(currentRecord);
+    showView('list');
+  });
   document.getElementById('btn-fix-errors')
     .addEventListener('click', () => { clearValidationErrors(); setFooterState('draft'); });
   document.getElementById('btn-submit-anyway')
@@ -3069,6 +3098,12 @@ function exportPDF(records, filename) {
   }
 
   doc.save(filename);
+}
+
+function closeFormExportPanel() {
+  const panel = document.getElementById('export-panel');
+  if (panel) panel.hidden = true;
+  document.removeEventListener('click', closeFormExportPanel);
 }
 
 function exportSinglePDF(record) {

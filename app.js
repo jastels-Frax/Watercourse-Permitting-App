@@ -720,6 +720,26 @@ function reachTabsHTML(record, sectionId) {
       <input class="field-input" type="text" id="${sectionId}-reach-label"
              value="${esc(record.reaches[activeReachIdx].reachLabel)}" />
     </label>
+    <div class="gps-row">
+      <label class="field-label">
+        <span>Reach Latitude</span>
+        <input class="field-input" type="number" id="${sectionId}-reach-lat"
+               step="0.000001" placeholder="e.g. 45.123456"
+               value="${record.reaches[activeReachIdx].reachLat ?? ''}" />
+      </label>
+      <label class="field-label">
+        <span>Reach Longitude</span>
+        <input class="field-input" type="number" id="${sectionId}-reach-lon"
+               step="0.000001" placeholder="e.g. -63.654321"
+               value="${record.reaches[activeReachIdx].reachLon ?? ''}" />
+      </label>
+      <button class="btn btn-secondary" id="${sectionId}-btn-reach-gps" type="button"
+              aria-label="Capture GPS coordinates for this reach">
+        <span id="${sectionId}-reach-gps-spinner" hidden>…</span>
+        <span id="${sectionId}-reach-gps-icon">GPS</span>
+      </button>
+      <p class="gps-status" id="${sectionId}-reach-gps-status" hidden></p>
+    </div>
   `;
 }
 
@@ -747,6 +767,72 @@ function bindReachControls(sectionId) {
     currentRecord.reaches[activeReachIdx].reachLabel = e.target.value;
     refreshReachTabStrip(currentRecord, 'fish');
     refreshReachTabStrip(currentRecord, 'geo');
+  });
+
+  bindReachGPS(sectionId);
+}
+
+function bindReachGPS(sectionId) {
+  const btn     = document.getElementById(`${sectionId}-btn-reach-gps`);
+  const spinner = document.getElementById(`${sectionId}-reach-gps-spinner`);
+  const icon    = document.getElementById(`${sectionId}-reach-gps-icon`);
+  const status  = document.getElementById(`${sectionId}-reach-gps-status`);
+  if (!btn) return;
+
+  function setStatus(msg, type) {
+    if (!status) return;
+    status.textContent = msg;
+    status.className   = `gps-status${type ? ' ' + type : ''}`;
+    status.hidden      = !msg;
+  }
+
+  btn.addEventListener('click', () => {
+    if (!navigator.geolocation) {
+      setStatus('Geolocation not supported by this browser.', 'error');
+      return;
+    }
+    btn.disabled    = true;
+    if (spinner) spinner.hidden = false;
+    if (icon)    icon.hidden    = true;
+    setStatus('Acquiring location…', '');
+
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        const latVal = pos.coords.latitude.toFixed(6);
+        const lonVal = pos.coords.longitude.toFixed(6);
+
+        // Update both fish and geo panels simultaneously so the value is mirrored
+        ['fish', 'geo'].forEach(sid => {
+          const latEl = document.getElementById(`${sid}-reach-lat`);
+          const lonEl = document.getElementById(`${sid}-reach-lon`);
+          if (latEl) { latEl.value = latVal; latEl.dispatchEvent(new Event('input', { bubbles: true })); }
+          if (lonEl) { lonEl.value = lonVal; lonEl.dispatchEvent(new Event('input', { bubbles: true })); }
+        });
+
+        // Write directly into the model so it's persisted even without a tab switch
+        if (currentRecord && currentRecord.reaches && currentRecord.reaches[activeReachIdx]) {
+          currentRecord.reaches[activeReachIdx].reachLat = parseFloat(latVal);
+          currentRecord.reaches[activeReachIdx].reachLon = parseFloat(lonVal);
+        }
+
+        setStatus(`Acquired — ±${Math.round(pos.coords.accuracy)} m`, 'good');
+        btn.disabled    = false;
+        if (spinner) spinner.hidden = true;
+        if (icon)    icon.hidden    = false;
+      },
+      err => {
+        const msgs = {
+          1: 'Location access denied. Check browser permissions.',
+          2: 'Position unavailable. Move to an open area and try again.',
+          3: 'Location request timed out.',
+        };
+        setStatus(msgs[err.code] || 'Location error.', 'error');
+        btn.disabled    = false;
+        if (spinner) spinner.hidden = true;
+        if (icon)    icon.hidden    = false;
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
   });
 }
 
@@ -801,6 +887,16 @@ function readReachFromDOM() {
   const slp = num('f-watercourse-slope'); if (slp !== undefined) reach.watercourseSlope = slp;
   const fv  = num('f-flow-velocity');     if (fv  !== undefined) reach.flowVelocity     = fv;
   const vm  = str('f-velocity-method');  if (vm  !== undefined) reach.velocityMethod   = vm;
+
+  // Reach GPS — read from whichever section panel is active (fish wins if both present)
+  const rlatFish = document.getElementById('fish-reach-lat');
+  const rlonFish = document.getElementById('fish-reach-lon');
+  const rlatGeo  = document.getElementById('geo-reach-lat');
+  const rlonGeo  = document.getElementById('geo-reach-lon');
+  const rlatEl   = rlatFish || rlatGeo;
+  const rlonEl   = rlonFish || rlonGeo;
+  if (rlatEl) reach.reachLat = rlatEl.value !== '' ? parseFloat(rlatEl.value) : null;
+  if (rlonEl) reach.reachLon = rlonEl.value !== '' ? parseFloat(rlonEl.value) : null;
 
   return reach;
 }
@@ -2630,13 +2726,21 @@ function triggerDownload(blob, filename) {
  * Coordinate order: [longitude, latitude] per RFC 7946.
  */
 function buildGeoJSONBlob(records) {
-  const features = records.map(r => ({
-    type: 'Feature',
-    geometry: (r.lat != null && r.lon != null)
-      ? { type: 'Point', coordinates: [r.lon, r.lat] }
-      : null,
-    properties: CA.serializeForGeoJSON(r),
-  }));
+  const features = records.flatMap(r =>
+    CA.serializeRecord(r).map(row => {
+      const lon = row.reach_lon != null ? row.reach_lon
+                : row.longitude  != null ? row.longitude  : null;
+      const lat = row.reach_lat != null ? row.reach_lat
+                : row.latitude   != null ? row.latitude   : null;
+      return {
+        type: 'Feature',
+        geometry: (lat != null && lon != null)
+          ? { type: 'Point', coordinates: [lon, lat] }
+          : null,
+        properties: row,
+      };
+    })
+  );
   return new Blob(
     [JSON.stringify({ type: 'FeatureCollection', features }, null, 2)],
     { type: 'application/geo+json' }
@@ -2942,6 +3046,12 @@ function exportPDF(records, filename) {
         const rsub = rch.substrate || {};
         const rhab = rch.hab       || {};
         reachHeader(rch.reachLabel);
+        if (rch.reachLat != null || rch.reachLon != null) {
+          field('Reach GPS',
+            [rch.reachLat != null ? `${rch.reachLat}° N` : null,
+             rch.reachLon != null ? `${rch.reachLon}° E` : null]
+            .filter(Boolean).join('  /  '));
+        }
         field('Watershed Area',       nv(rch.watershedArea, 'km²'));
         field('Depth Continuity',     rch.depthContinuity);
         field('Channel Connectivity', bv(rch.channelConnectivity));
@@ -3007,6 +3117,12 @@ function exportPDF(records, filename) {
     } else {
       reaches.forEach(rch => {
         reachHeader(rch.reachLabel);
+        if (rch.reachLat != null || rch.reachLon != null) {
+          field('Reach GPS',
+            [rch.reachLat != null ? `${rch.reachLat}° N` : null,
+             rch.reachLon != null ? `${rch.reachLon}° E` : null]
+            .filter(Boolean).join('  /  '));
+        }
         subHead('Channel Dimensions');
         field('Bankfull Width',     nv(rch.bankfullWidth,  'm'));
         field('Wetted Width',       nv(rch.wettedWidth,    'm'));

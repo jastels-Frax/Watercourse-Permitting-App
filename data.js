@@ -48,6 +48,9 @@
       watercourseSlope: null,
       flowVelocity:     null,
       velocityMethod:   '',
+      // Location
+      reachLat: null,
+      reachLon: null,
     };
   }
 
@@ -246,6 +249,8 @@
     return {
       reach_id:    reach.reachId,
       reach_label: reach.reachLabel,
+      reach_lat:   reach.reachLat  != null ? reach.reachLat  : null,
+      reach_lon:   reach.reachLon  != null ? reach.reachLon  : null,
       // Fish
       watershed_area_km2:         reach.watershedArea,
       depth_continuity:           reach.depthContinuity,

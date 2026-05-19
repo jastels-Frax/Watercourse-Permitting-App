@@ -2797,6 +2797,19 @@ function exportPDF(records, filename) {
     y += 5.5;
   }
 
+  function reachHeader(title) {
+    needsPage(11);
+    doc.setFillColor(18, 78, 44);
+    doc.rect(ML, y, CW, 8, 'F');
+    doc.setFont(PDF_FONT, 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(255, 255, 255);
+    doc.text(title.toUpperCase(), ML + 3, y + 5.5);
+    doc.setTextColor(...C_DARK);
+    y += 9;
+    rowAlt = false;
+  }
+
   function field(label, value) {
     const val = (value == null || value === '') ? '—' : String(value);
     const lines = doc.splitTextToSize(val, VAL_W);
@@ -2928,7 +2941,7 @@ function exportPDF(records, filename) {
       reaches.forEach(rch => {
         const rsub = rch.substrate || {};
         const rhab = rch.hab       || {};
-        if (reaches.length > 1) subHead(rch.reachLabel);
+        if (reaches.length > 1) reachHeader(rch.reachLabel);
         field('Watershed Area',       nv(rch.watershedArea, 'km²'));
         field('Depth Continuity',     rch.depthContinuity);
         field('Channel Connectivity', bv(rch.channelConnectivity));
@@ -2993,7 +3006,7 @@ function exportPDF(records, filename) {
       field('Reach data', 'None recorded');
     } else {
       reaches.forEach(rch => {
-        if (reaches.length > 1) subHead(rch.reachLabel);
+        if (reaches.length > 1) reachHeader(rch.reachLabel);
         subHead('Channel Dimensions');
         field('Bankfull Width',     nv(rch.bankfullWidth,  'm'));
         field('Wetted Width',       nv(rch.wettedWidth,    'm'));

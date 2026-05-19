@@ -2129,7 +2129,7 @@ function collectFormData() {
   const fDamageNotes       = document.getElementById('f-structural-damage-notes');
   const fFishPassageRating = document.getElementById('f-fish-passage-rating');
 
-  if (fCrossingPresent)   data.crossingPresent      = fCrossingPresent.checked;
+  if (fCrossingPresent)   data.crossingPresent      = fCrossingPresent.dataset.touched === 'true' ? fCrossingPresent.checked : null;
   if (fCrossingStatus)    data.crossingStatus        = fCrossingStatus.value;
   if (fStructureType)     data.structureType        = fStructureType.value;
   if (fStructureMat)      data.structureMaterial    = fStructureMat.value;
@@ -2159,7 +2159,7 @@ function collectFormData() {
   const fWaaRequired      = document.getElementById('f-waa-required');
   const fWetlandNotes     = document.getElementById('f-wetland-notes');
 
-  if (fWetlandPresent)   data.wetlandPresent         = fWetlandPresent.checked;
+  if (fWetlandPresent)   data.wetlandPresent         = fWetlandPresent.dataset.touched === 'true' ? fWetlandPresent.checked : null;
   if (fWetlandConfirmed) data.wetlandConfirmed        = fWetlandConfirmed.checked;
   if (fWetlandType)      data.wetlandType             = fWetlandType.value;
   if (fWespAc)           data.wespAc                  = fWespAc.checked;

@@ -156,12 +156,21 @@
       const raw = localStorage.getItem(STORAGE_KEY);
       return raw ? JSON.parse(raw) : [];
     } catch {
+      // Mark corruption so the app shell can warn the user after boot.
+      if (window.CA) window.CA._storageCorrupted = true;
+      else (window._caStorageCorrupted = true);
       return [];
     }
   }
 
   function persistRecords(records) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+    } catch (err) {
+      // Quota exceeded or storage unavailable — re-throw with a clear message
+      // so app.js can catch it and show a user-facing error toast.
+      throw new Error('STORAGE_FULL');
+    }
   }
 
   // ── Auto-increment Crossing ID ────────────────────────────────────────────────

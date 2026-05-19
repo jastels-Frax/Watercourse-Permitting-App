@@ -95,6 +95,9 @@ const btnConfirmCancel = document.getElementById('btn-confirm-cancel');
 document.addEventListener('DOMContentLoaded', () => {
   loadSettings();
   showView('list');       // always start on the record list
+  if (window.CA?._storageCorrupted || window._caStorageCorrupted) {
+    toast('Warning: saved record data is corrupted — export immediately before it is lost.', 'error');
+  }
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -204,8 +207,17 @@ viewForm.addEventListener('change', () => { formDirty = true; });
  */
 function saveDraft() {
   if (!currentRecord) return null;
-  const data  = collectFormData();
-  const saved = CA.saveRecord({ ...data, status: 'draft' });
+  const data = collectFormData();
+  let saved;
+  try {
+    saved = CA.saveRecord({ ...data, status: 'draft' });
+  } catch (err) {
+    if (err?.message === 'STORAGE_FULL') {
+      toast('Save failed — storage full. Export your data and free up space.', 'error');
+      return null;
+    }
+    throw err;
+  }
   currentRecord = saved;
   formDirty     = false;
   toast(`Draft saved — ${saved.crossingId}`, 'success');
@@ -1951,7 +1963,16 @@ function saveRecord() {
   if (!currentRecord) return;
   const data   = collectFormData();
   const errors = validateForm(data);
-  const saved  = CA.saveRecord({ ...data, status: 'draft' });
+  let saved;
+  try {
+    saved = CA.saveRecord({ ...data, status: 'draft' });
+  } catch (err) {
+    if (err?.message === 'STORAGE_FULL') {
+      toast('Save failed — storage full. Export your data and free up space.', 'error');
+      return;
+    }
+    throw err;
+  }
   currentRecord = saved;
   formDirty     = false;
   updateSectionCheckmarks();
@@ -1998,8 +2019,17 @@ function submitRecord() {
  * Saves the record as complete, clears any inline errors, locks the form.
  */
 function finalizeSubmit() {
-  const data  = collectFormData();
-  const saved = CA.saveRecord({ ...data, status: 'complete' });
+  const data = collectFormData();
+  let saved;
+  try {
+    saved = CA.saveRecord({ ...data, status: 'complete' });
+  } catch (err) {
+    if (err?.message === 'STORAGE_FULL') {
+      toast('Save failed — storage full. Export your data and free up space.', 'error');
+      return;
+    }
+    throw err;
+  }
   currentRecord = saved;
   formDirty     = false;
   clearValidationErrors();
@@ -2014,7 +2044,16 @@ function finalizeSubmit() {
  */
 function editRecord() {
   if (!currentRecord) return;
-  const saved = CA.saveRecord({ ...currentRecord, status: 'draft' });
+  let saved;
+  try {
+    saved = CA.saveRecord({ ...currentRecord, status: 'draft' });
+  } catch (err) {
+    if (err?.message === 'STORAGE_FULL') {
+      toast('Save failed — storage full. Export your data and free up space.', 'error');
+      return;
+    }
+    throw err;
+  }
   currentRecord = saved;
   formDirty     = false;
   clearValidationErrors();

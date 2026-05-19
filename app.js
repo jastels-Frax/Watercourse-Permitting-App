@@ -2902,7 +2902,7 @@ function exportPDF(records, filename) {
       ML, 13.5
     );
     if (window.PDF_LOGO_B64) {
-      doc.addImage(window.PDF_LOGO_B64, 'PNG', PAGE_W - MR - 12, 2, 12, 12);
+      doc.addImage('data:image/png;base64,' + window.PDF_LOGO_B64, 'PNG', PAGE_W - MR - 12, 2, 12, 12);
     }
     doc.setTextColor(...C_DARK);
     y = 20;

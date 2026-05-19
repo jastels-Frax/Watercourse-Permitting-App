@@ -1,11 +1,11 @@
 {
-  "name": "Crossing Assessor",
-  "short_name": "Crossings",
+  "name": "Watercourse Assessor NTB",
+  "short_name": "WC Assessor",
   "description": "Field data collector for watercourse and wetland crossing assessments — L8006 NS-NB Reliability Intertie",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#00B4D8",
+  "background_color": "#000000",
   "theme_color": "#1a1a2e",
   "orientation": "portrait-primary",
   "icons": [

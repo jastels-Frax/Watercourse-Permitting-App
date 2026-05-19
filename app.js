@@ -131,7 +131,7 @@ function showView(name) {
   if (onForm) {
     headerTitle.textContent = currentRecord?.crossingId || 'New Record';
   } else {
-    headerTitle.textContent = 'Crossing Assessor';
+    headerTitle.textContent = 'Watercourse Assessor NTB';
     renderList();   // always refresh the list when returning to it
   }
 }

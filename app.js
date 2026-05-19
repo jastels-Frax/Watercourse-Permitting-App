@@ -2941,7 +2941,7 @@ function exportPDF(records, filename) {
       reaches.forEach(rch => {
         const rsub = rch.substrate || {};
         const rhab = rch.hab       || {};
-        if (reaches.length > 1) reachHeader(rch.reachLabel);
+        reachHeader(rch.reachLabel);
         field('Watershed Area',       nv(rch.watershedArea, 'km²'));
         field('Depth Continuity',     rch.depthContinuity);
         field('Channel Connectivity', bv(rch.channelConnectivity));
@@ -3006,7 +3006,7 @@ function exportPDF(records, filename) {
       field('Reach data', 'None recorded');
     } else {
       reaches.forEach(rch => {
-        if (reaches.length > 1) reachHeader(rch.reachLabel);
+        reachHeader(rch.reachLabel);
         subHead('Channel Dimensions');
         field('Bankfull Width',     nv(rch.bankfullWidth,  'm'));
         field('Wetted Width',       nv(rch.wettedWidth,    'm'));

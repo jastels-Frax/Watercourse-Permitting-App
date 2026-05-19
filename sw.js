@@ -2,7 +2,7 @@
    Cache-first strategy. Bump CACHE_NAME to force refresh on deploy.
 */
 
-const CACHE_NAME = 'crossing-assessor-v28';
+const CACHE_NAME = 'crossing-assessor-v29';
 
 // Core app shell — must all succeed or install fails, so keep this lean.
 // Large optional assets (jspdf) are cached on first use by the fetch handler.
@@ -13,8 +13,8 @@ const ASSETS = [
   './data.js',
   './app.js',
   './manifest.json',
-  './icons/icon-192.svg',
-  './icons/icon-512.svg',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
   './assets/LOGO black bg.jpg',
   './assets/LOGO w TEXT black bg.jpg'
 ];

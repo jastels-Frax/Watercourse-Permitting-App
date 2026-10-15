@@ -1,6 +1,5 @@
-/* app.js — Crossing Assessor
-   Part 3a: app shell, view switching, back-button unsaved-change guard.
-   Later parts add form rendering and list rendering on top of this shell.
+/* app.js — Watercourse Assessor NTB
+   App shell, view switching, form rendering, data collection, and export.
 */
 
 'use strict';
@@ -201,8 +200,7 @@ viewForm.addEventListener('change', () => { formDirty = true; });
 
 /**
  * saveDraft()
- * Persists the current in-memory record as a draft.
- * In Part 3b+ this will first call collectFormData() to capture field values.
+ * Collects form data and persists the current record as a draft.
  * Returns the saved record (with updatedAt stamped by CA.saveRecord).
  */
 function saveDraft() {
@@ -232,11 +230,8 @@ function saveDraft() {
  * renderForm(record)
  * Renders the sticky section-nav strip and one panel per section into
  * #view-form. Only the active section panel is visible at any time.
- * Wires tab clicks to showSection(). Section content is filled in by
- * later parts (3c+); stubs are shown until then.
  */
 function renderForm(record) {
-  console.log('[CA] renderForm:', record?.crossingId);
   viewForm.innerHTML = `
     <div id="sar-banner" class="sar-banner" hidden>
       ⚠ SAR Polygon — Species at Risk present or suspected
@@ -253,9 +248,7 @@ function renderForm(record) {
 
     <div id="section-panels">
       ${SECTIONS.map(s => `
-        <div class="form-section" data-section="${esc(s.id)}" hidden>
-          <p class="section-stub">${esc(s.label)} — fields coming soon.</p>
-        </div>
+        <div class="form-section" data-section="${esc(s.id)}" hidden></div>
       `).join('')}
     </div>
 
@@ -786,12 +779,32 @@ function bindReachGPS(sectionId) {
     status.hidden      = !msg;
   }
 
+  // Sync a manual edit in either panel's lat/lon input to the model and the other panel.
+  const otherSid = sectionId === 'fish' ? 'geo' : 'fish';
+  function syncInput(field, value) {
+    const parsed = value !== '' ? parseFloat(value) : null;
+    if (currentRecord?.reaches?.[activeReachIdx]) {
+      currentRecord.reaches[activeReachIdx][field] = parsed;
+    }
+    const mirror = document.getElementById(`${otherSid}-reach-${field === 'reachLat' ? 'lat' : 'lon'}`);
+    if (mirror && mirror.value !== value) mirror.value = value;
+  }
+
+  document.getElementById(`${sectionId}-reach-lat`)
+    ?.addEventListener('input', e => syncInput('reachLat', e.target.value));
+  document.getElementById(`${sectionId}-reach-lon`)
+    ?.addEventListener('input', e => syncInput('reachLon', e.target.value));
+
   btn.addEventListener('click', () => {
     if (!navigator.geolocation) {
       setStatus('Geolocation not supported by this browser.', 'error');
       return;
     }
-    btn.disabled    = true;
+    // Capture at click time to guard against reach or record switches during acquisition.
+    const capturedRecord = currentRecord;
+    const capturedIdx    = activeReachIdx;
+
+    btn.disabled = true;
     if (spinner) spinner.hidden = false;
     if (icon)    icon.hidden    = true;
     setStatus('Acquiring location…', '');
@@ -801,22 +814,24 @@ function bindReachGPS(sectionId) {
         const latVal = pos.coords.latitude.toFixed(6);
         const lonVal = pos.coords.longitude.toFixed(6);
 
-        // Update both fish and geo panels simultaneously so the value is mirrored
-        ['fish', 'geo'].forEach(sid => {
-          const latEl = document.getElementById(`${sid}-reach-lat`);
-          const lonEl = document.getElementById(`${sid}-reach-lon`);
-          if (latEl) { latEl.value = latVal; latEl.dispatchEvent(new Event('input', { bubbles: true })); }
-          if (lonEl) { lonEl.value = lonVal; lonEl.dispatchEvent(new Event('input', { bubbles: true })); }
-        });
+        // Write to the model reach that was active at click time.
+        if (capturedRecord?.reaches?.[capturedIdx]) {
+          capturedRecord.reaches[capturedIdx].reachLat = parseFloat(latVal);
+          capturedRecord.reaches[capturedIdx].reachLon = parseFloat(lonVal);
+        }
 
-        // Write directly into the model so it's persisted even without a tab switch
-        if (currentRecord && currentRecord.reaches && currentRecord.reaches[activeReachIdx]) {
-          currentRecord.reaches[activeReachIdx].reachLat = parseFloat(latVal);
-          currentRecord.reaches[activeReachIdx].reachLon = parseFloat(lonVal);
+        // If the user is still looking at the same reach, update both panel inputs.
+        if (capturedRecord === currentRecord && capturedIdx === activeReachIdx) {
+          ['fish', 'geo'].forEach(sid => {
+            const latEl = document.getElementById(`${sid}-reach-lat`);
+            const lonEl = document.getElementById(`${sid}-reach-lon`);
+            if (latEl) latEl.value = latVal;
+            if (lonEl) lonEl.value = lonVal;
+          });
         }
 
         setStatus(`Acquired — ±${Math.round(pos.coords.accuracy)} m`, 'good');
-        btn.disabled    = false;
+        btn.disabled = false;
         if (spinner) spinner.hidden = true;
         if (icon)    icon.hidden    = false;
       },
@@ -827,7 +842,7 @@ function bindReachGPS(sectionId) {
           3: 'Location request timed out.',
         };
         setStatus(msgs[err.code] || 'Location error.', 'error');
-        btn.disabled    = false;
+        btn.disabled = false;
         if (spinner) spinner.hidden = true;
         if (icon)    icon.hidden    = false;
       },
@@ -888,15 +903,9 @@ function readReachFromDOM() {
   const fv  = num('f-flow-velocity');     if (fv  !== undefined) reach.flowVelocity     = fv;
   const vm  = str('f-velocity-method');  if (vm  !== undefined) reach.velocityMethod   = vm;
 
-  // Reach GPS — read from whichever section panel is active (fish wins if both present)
-  const rlatFish = document.getElementById('fish-reach-lat');
-  const rlonFish = document.getElementById('fish-reach-lon');
-  const rlatGeo  = document.getElementById('geo-reach-lat');
-  const rlonGeo  = document.getElementById('geo-reach-lon');
-  const rlatEl   = rlatFish || rlatGeo;
-  const rlonEl   = rlonFish || rlonGeo;
-  if (rlatEl) reach.reachLat = rlatEl.value !== '' ? parseFloat(rlatEl.value) : null;
-  if (rlonEl) reach.reachLon = rlonEl.value !== '' ? parseFloat(rlonEl.value) : null;
+  // reachLat / reachLon are kept current in the model by bindReachGPS input listeners;
+  // they are NOT re-read from DOM here so a manual edit in either panel cannot overwrite
+  // a GPS fix from the other panel.
 
   return reach;
 }
@@ -3048,8 +3057,8 @@ function exportPDF(records, filename) {
         reachHeader(rch.reachLabel);
         if (rch.reachLat != null || rch.reachLon != null) {
           field('Reach GPS',
-            [rch.reachLat != null ? `${rch.reachLat}° N` : null,
-             rch.reachLon != null ? `${rch.reachLon}° E` : null]
+            [rch.reachLat != null ? `${Math.abs(rch.reachLat).toFixed(6)}° ${rch.reachLat >= 0 ? 'N' : 'S'}` : null,
+             rch.reachLon != null ? `${Math.abs(rch.reachLon).toFixed(6)}° ${rch.reachLon >= 0 ? 'E' : 'W'}` : null]
             .filter(Boolean).join('  /  '));
         }
         field('Watershed Area',       nv(rch.watershedArea, 'km²'));
@@ -3119,8 +3128,8 @@ function exportPDF(records, filename) {
         reachHeader(rch.reachLabel);
         if (rch.reachLat != null || rch.reachLon != null) {
           field('Reach GPS',
-            [rch.reachLat != null ? `${rch.reachLat}° N` : null,
-             rch.reachLon != null ? `${rch.reachLon}° E` : null]
+            [rch.reachLat != null ? `${Math.abs(rch.reachLat).toFixed(6)}° ${rch.reachLat >= 0 ? 'N' : 'S'}` : null,
+             rch.reachLon != null ? `${Math.abs(rch.reachLon).toFixed(6)}° ${rch.reachLon >= 0 ? 'E' : 'W'}` : null]
             .filter(Boolean).join('  /  '));
         }
         subHead('Channel Dimensions');

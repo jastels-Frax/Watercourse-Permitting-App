@@ -371,77 +371,6 @@
     });
   }
 
-  /**
-   * serializeForGeoJSON(record)
-   * Returns the properties object for a GeoJSON Feature.
-   * Non-reach fields are flat at the top level; reach data is in a reaches sub-array.
-   */
-  function serializeForGeoJSON(r) {
-    const reaches = (r.reaches && r.reaches.length) ? r.reaches : [defaultReach(1)];
-    const photos  = r.photos || {};
-    return {
-      record_id:   r.id,
-      status:      r.status,
-      created_at:  r.createdAt,
-      updated_at:  r.updatedAt,
-      crossing_id: r.crossingId,
-      project_id:  r.projectId,
-      assessor:    r.assessor,
-      date:        r.date,
-      time:        r.time,
-      latitude:    r.lat,
-      longitude:   r.lon,
-      watershed_primary:   r.watershedPrimary,
-      watershed_secondary: r.watershedSecondary,
-      priority_tier:       r.priority,
-      sar_polygon:         r.sarPolygon,
-      notes:               r.notes,
-      watercourse_present: r.watercoursePresent,
-      crossing_present:        r.crossingPresent,
-      crossing_status:         r.crossingStatus,
-      structure_type:          r.structureType,
-      structure_material:      r.structureMaterial,
-      num_barrels:             r.numBarrels,
-      structure_diameter_m:    r.structureDiameter,
-      outlet_drop_m:           r.outletDrop,
-      barrel_condition:        r.barrelCondition,
-      blockage:                r.blockage,
-      dry_barrel:              r.dryBarrel,
-      structural_damage_notes: r.structuralDamageNotes,
-      fish_passage_rating:     r.fishPassageRating,
-      wetland_present:             r.wetlandPresent,
-      wetland_confirmed:           r.wetlandConfirmed,
-      wetland_type:                r.wetlandType,
-      wesp_ac_completed:           r.wespAc,
-      wetland_connectivity:        r.wetlandConnectivity,
-      hydrophilic_veg:             r.hydrophilicVeg,
-      hydric_soils:                r.hydricSoils,
-      hydro_water_marks:           r.hydroWaterMarks,
-      hydro_drift_lines:           r.hydroDriftLines,
-      hydro_waterlogged_soil:      r.hydroWaterloggedSoil,
-      hydro_standing_water:        r.hydroStandingWater,
-      hydro_water_stained_leaves:  r.hydroWaterStainedLeaves,
-      hydro_oxidized_rhizospheres: r.hydroOxidizedRhizospheres,
-      hydro_sediment_deposits:     r.hydroSedimentDeposits,
-      hydro_algal_mats:            r.hydroAlgalMats,
-      hydro_iron_deposits:         r.hydroIronDeposits,
-      hydro_drainage_patterns:     r.hydroDrainagePatterns,
-      hydro_buttressed_roots:      r.hydroButtressedRoots,
-      hydro_moss_lines:            r.hydroMossLines,
-      dominant_vegetation:         r.dominantVeg,
-      waa_required:                r.waaRequired,
-      wetland_notes:               r.wetlandNotes,
-      photos_confirmed: r.photosConfirmed,
-      photo_fish_sign:  photos.fishSign,
-      photo_damage:     photos.damage,
-      photo_wetland:    photos.wetland,
-      photo_sar:        photos.sar,
-      nsecc_pathway:    r.nseccPathway,
-      dfo_pathway:      r.dfoPathway,
-      reaches:          reaches.map(serializeReach),
-    };
-  }
-
   // ── Expose on window.CA ───────────────────────────────────────────────────────
   window.CA = Object.assign(window.CA || {}, {
     DEFAULTS: Object.freeze(deepClone(DEFAULTS)),
@@ -453,7 +382,6 @@
     deleteRecord,
     nextCrossingId,
     serializeRecord,
-    serializeForGeoJSON,
     defaultReach,
   });
 
